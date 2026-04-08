@@ -80,7 +80,7 @@ export default function TheHeritageDriversLandingPage() {
         intro:
           "Your account is now protected by Supabase authentication. Member data can be extended with events, directories and protected content.",
         eventTitle: "Upcoming Drive",
-        eventText: "Season Opening · 18.04.2026 · Private confirmation required.",
+        eventText: "Season Opening · 19.04.2026 · Private confirmation required.",
         registryTitle: "Members Notes",
         registryText: "Discreet updates, club notices and society correspondence.",
         atelierTitle: "Technical Circle",
@@ -144,7 +144,7 @@ export default function TheHeritageDriversLandingPage() {
         intro:
           "Ihr Konto ist nun über Supabase-Authentifizierung geschützt. Mitgliederdaten können später um Events, Verzeichnisse und geschützte Inhalte erweitert werden.",
         eventTitle: "Nächste Ausfahrt",
-        eventText: "Season Opening · 18.04.2026 · Teilnahme nur nach Bestätigung.",
+        eventText: "Season Opening · 19.04.2026 · Teilnahme nur nach Bestätigung.",
         registryTitle: "Mitteilungen",
         registryText: "Diskrete Updates, Club-Hinweise und Korrespondenz der Gesellschaft.",
         atelierTitle: "Technischer Zirkel",
