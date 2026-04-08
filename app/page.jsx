@@ -324,7 +324,7 @@ export default function TheHeritageDriversLandingPage() {
       <header className="border-b border-[#2a2213]">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-5">
           <div className="flex items-center gap-4">
-            <img src="/logo.png" alt="The Heritage Drivers" className="h-10 w-10 object-contain" />
+            <img src="/Logo.png" alt="The Heritage Drivers" className="h-10 w-10 object-contain" />
             <div>
               <div className="text-xs uppercase tracking-[0.4em] text-[#b6924f]">The Heritage Drivers</div>
               <div className="text-sm text-[#a89c84]">Motor Cars & Culture</div>
@@ -379,7 +379,7 @@ export default function TheHeritageDriversLandingPage() {
 
         <section>
           <div className="mb-10 flex justify-center">
-            <img src="/logo.png" alt="The Heritage Drivers" className="h-40 object-contain" />
+            <img src="/Logo.png" alt="The Heritage Drivers" className="h-40 object-contain" />
           </div>
           <p className="text-sm uppercase tracking-[0.4em] text-[#b6924f]">{content.heroTag}</p>
 
