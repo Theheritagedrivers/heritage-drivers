@@ -1,4 +1,5 @@
 "use client";
+
 import { useEffect, useMemo, useState } from "react";
 import {
   Calendar,
@@ -7,7 +8,6 @@ import {
   Mail,
   Shield,
   User,
-  UserPlus,
   Wrench,
   Loader2,
   CheckCircle2,
@@ -19,9 +19,13 @@ const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
 
 const supabaseConfigured =
-  SUPABASE_URL.startsWith("https://") && !SUPABASE_URL.includes("YOUR_PROJECT") && !SUPABASE_ANON_KEY.includes("YOUR_PUBLIC");
+  SUPABASE_URL.startsWith("https://") &&
+  !SUPABASE_URL.includes("YOUR_PROJECT") &&
+  !SUPABASE_ANON_KEY.includes("YOUR_PUBLIC");
 
-const supabase = supabaseConfigured ? createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+const supabase = supabaseConfigured
+  ? createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+  : null;
 
 export default function TheHeritageDriversLandingPage() {
   const [lang, setLang] = useState("en");
@@ -37,9 +41,19 @@ export default function TheHeritageDriversLandingPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
+  const [events, setEvents] = useState([]);
+  const [eventsLoading, setEventsLoading] = useState(false);
+  const [eventForm, setEventForm] = useState({
+    title: "",
+    description: "",
+    event_date: "",
+    location: "",
+    max_participants: "",
+  });
+
   const t = {
     en: {
-      nav: ["Society", "Philosophy", "Membership", "Members", "Contact"],
+      nav: ["Society", "Philosophy", "Membership"],
       heroTag: "A Private Drivers Society",
       heroTitle: "Heritage motoring,\nquietly understood.",
       heroText:
@@ -75,16 +89,19 @@ export default function TheHeritageDriversLandingPage() {
       members: {
         label: "Members",
         title: "Private Members Area",
-        subtitle: "A discreet section for members, events and society information.",
+        subtitle:
+          "A discreet section for members, events and society information.",
         welcome: "Welcome back",
         intro:
           "Your account is now protected by Supabase authentication. Member data can be extended with events, directories and protected content.",
         eventTitle: "Upcoming Drive",
         eventText: "Season Opening · 19.04.2026 · Private confirmation required.",
         registryTitle: "Members Notes",
-        registryText: "Discreet updates, club notices and society correspondence.",
+        registryText:
+          "Discreet updates, club notices and society correspondence.",
         atelierTitle: "Technical Circle",
-        atelierText: "Selected workshop evenings, heritage discussions and mechanical exchange.",
+        atelierText:
+          "Selected workshop evenings, heritage discussions and mechanical exchange.",
         secure: "Protected access",
         signOut: "Sign Out",
         preview: "Preview access",
@@ -97,13 +114,18 @@ export default function TheHeritageDriversLandingPage() {
       },
       messages: {
         loginSuccess: "Login successful.",
-        signupSuccess: "Account created. Please check your email to confirm your registration.",
+        signupSuccess:
+          "Account created. Please check your email to confirm your registration.",
         logoutSuccess: "You have been signed out.",
-        genericError: "Something went wrong. Please review the configuration and try again.",
+        genericError:
+          "Something went wrong. Please review the configuration and try again.",
+        notAuthorized: "Not authorized to create events.",
+        eventCreateError: "Could not create event.",
+        eventCreateSuccess: "Event created successfully.",
       },
     },
     de: {
-      nav: ["Gesellschaft", "Philosophie", "Mitgliedschaft", "Mitglieder", "Kontakt"],
+      nav: ["Gesellschaft", "Philosophie", "Mitgliedschaft"],
       heroTag: "Eine private Fahrergesellschaft",
       heroTitle: "Automobile Kultur,\nstill verstanden.",
       heroText:
@@ -124,7 +146,8 @@ export default function TheHeritageDriversLandingPage() {
       login: {
         button: "Mitglieder-Login",
         title: "Mitgliederbereich",
-        subtitle: "Ausschliesslich für registrierte Mitglieder der Gesellschaft.",
+        subtitle:
+          "Ausschliesslich für registrierte Mitglieder der Gesellschaft.",
         email: "E-Mail-Adresse",
         password: "Passwort",
         fullName: "Vollständiger Name",
@@ -139,16 +162,19 @@ export default function TheHeritageDriversLandingPage() {
       members: {
         label: "Mitglieder",
         title: "Privater Mitgliederbereich",
-        subtitle: "Ein diskreter Bereich für Mitglieder, Veranstaltungen und Gesellschaftsinformationen.",
+        subtitle:
+          "Ein diskreter Bereich für Mitglieder, Veranstaltungen und Gesellschaftsinformationen.",
         welcome: "Willkommen zurück",
         intro:
           "Ihr Konto ist nun über Supabase-Authentifizierung geschützt. Mitgliederdaten können später um Events, Verzeichnisse und geschützte Inhalte erweitert werden.",
         eventTitle: "Nächste Ausfahrt",
         eventText: "Season Opening · 19.04.2026 · Teilnahme nur nach Bestätigung.",
         registryTitle: "Mitteilungen",
-        registryText: "Diskrete Updates, Club-Hinweise und Korrespondenz der Gesellschaft.",
+        registryText:
+          "Diskrete Updates, Club-Hinweise und Korrespondenz der Gesellschaft.",
         atelierTitle: "Technischer Zirkel",
-        atelierText: "Ausgewählte Werkstattabende, Heritage-Gespräche und mechanischer Austausch.",
+        atelierText:
+          "Ausgewählte Werkstattabende, Heritage-Gespräche und mechanischer Austausch.",
         secure: "Geschützter Zugang",
         signOut: "Abmelden",
         preview: "Vorschauzugang",
@@ -161,15 +187,21 @@ export default function TheHeritageDriversLandingPage() {
       },
       messages: {
         loginSuccess: "Anmeldung erfolgreich.",
-        signupSuccess: "Konto erstellt. Bitte bestätigen Sie Ihre Registrierung über die E-Mail.",
+        signupSuccess:
+          "Konto erstellt. Bitte bestätigen Sie Ihre Registrierung über die E-Mail.",
         logoutSuccess: "Sie wurden abgemeldet.",
-        genericError: "Etwas ist schiefgelaufen. Bitte prüfen Sie die Konfiguration und versuchen Sie es erneut.",
+        genericError:
+          "Etwas ist schiefgelaufen. Bitte prüfen Sie die Konfiguration und versuchen Sie es erneut.",
+        notAuthorized: "Keine Berechtigung zum Erstellen von Events.",
+        eventCreateError: "Event konnte nicht erstellt werden.",
+        eventCreateSuccess: "Event erfolgreich erstellt.",
       },
     },
   };
 
   const content = t[lang];
   const isLoggedIn = !!session;
+  const isAdmin = profile?.role === "admin";
 
   const memberName = useMemo(() => {
     if (profile?.full_name) return profile.full_name;
@@ -177,6 +209,38 @@ export default function TheHeritageDriversLandingPage() {
     if (!sessionEmail) return lang === "en" ? "Member" : "Mitglied";
     return sessionEmail.split("@")[0].replace(/[._-]/g, " ");
   }, [profile, session, email, lang]);
+
+  const loadProfile = async (userId) => {
+    if (!supabase || !userId) return;
+
+    const { data, error } = await supabase
+      .from("member_profiles")
+      .select("id, full_name, role")
+      .eq("id", userId)
+      .single();
+
+    if (!error && data) {
+      setProfile(data);
+    }
+  };
+
+  const loadEvents = async () => {
+    if (!supabase) return;
+
+    setEventsLoading(true);
+
+    const { data, error } = await supabase
+      .from("events")
+      .select("*")
+      .eq("is_active", true)
+      .order("event_date", { ascending: true });
+
+    if (!error && data) {
+      setEvents(data);
+    }
+
+    setEventsLoading(false);
+  };
 
   useEffect(() => {
     if (!supabase) {
@@ -196,6 +260,7 @@ export default function TheHeritageDriversLandingPage() {
 
       if (session?.user) {
         await loadProfile(session.user.id);
+        await loadEvents();
       }
 
       setInitializing(false);
@@ -207,11 +272,15 @@ export default function TheHeritageDriversLandingPage() {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (_event, currentSession) => {
       if (!mounted) return;
+
       setSession(currentSession);
+
       if (currentSession?.user) {
         await loadProfile(currentSession.user.id);
+        await loadEvents();
       } else {
         setProfile(null);
+        setEvents([]);
       }
     });
 
@@ -221,31 +290,28 @@ export default function TheHeritageDriversLandingPage() {
     };
   }, []);
 
-  const loadProfile = async (userId) => {
-    if (!supabase || !userId) return;
-
-    const { data, error } = await supabase.from("member_profiles").select("id, full_name, role").eq("id", userId).single();
-
-    if (!error && data) {
-      setProfile(data);
-    }
-  };
-
   const resetStatus = () => setStatus({ type: "", message: "" });
 
   const handleLogin = async () => {
     resetStatus();
+
     if (!supabase) {
       setStatus({ type: "error", message: content.setup.text });
       return;
     }
 
     setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
     setLoading(false);
 
     if (error) {
-      setStatus({ type: "error", message: error.message || content.messages.genericError });
+      setStatus({
+        type: "error",
+        message: error.message || content.messages.genericError,
+      });
       return;
     }
 
@@ -256,6 +322,7 @@ export default function TheHeritageDriversLandingPage() {
 
   const handleSignup = async () => {
     resetStatus();
+
     if (!supabase) {
       setStatus({ type: "error", message: content.setup.text });
       return;
@@ -273,7 +340,10 @@ export default function TheHeritageDriversLandingPage() {
 
     if (error) {
       setLoading(false);
-      setStatus({ type: "error", message: error.message || content.messages.genericError });
+      setStatus({
+        type: "error",
+        message: error.message || content.messages.genericError,
+      });
       return;
     }
 
@@ -291,8 +361,58 @@ export default function TheHeritageDriversLandingPage() {
     setPassword("");
   };
 
+  const handleCreateEvent = async () => {
+    resetStatus();
+
+    if (!supabase || !session?.user || !isAdmin) {
+      setStatus({
+        type: "error",
+        message: content.messages.notAuthorized,
+      });
+      return;
+    }
+
+    const payload = {
+      title: eventForm.title,
+      description: eventForm.description,
+      event_date: eventForm.event_date,
+      location: eventForm.location,
+      max_participants: eventForm.max_participants
+        ? Number(eventForm.max_participants)
+        : null,
+      created_by: session.user.id,
+      is_active: true,
+    };
+
+    const { error } = await supabase.from("events").insert(payload);
+
+    if (error) {
+      setStatus({
+        type: "error",
+        message: error.message || content.messages.eventCreateError,
+      });
+      return;
+    }
+
+    setStatus({
+      type: "success",
+      message: content.messages.eventCreateSuccess,
+    });
+
+    setEventForm({
+      title: "",
+      description: "",
+      event_date: "",
+      location: "",
+      max_participants: "",
+    });
+
+    await loadEvents();
+  };
+
   const handleLogout = async () => {
     resetStatus();
+
     if (!supabase) {
       setSession(null);
       setProfile(null);
@@ -314,7 +434,11 @@ export default function TheHeritageDriversLandingPage() {
             : "border-[#4b2a23] bg-[#1a1110] text-[#efc5bc]"
         }`}
       >
-        {status.type === "success" ? <CheckCircle2 className="mt-0.5 h-4 w-4" /> : <AlertCircle className="mt-0.5 h-4 w-4" />}
+        {status.type === "success" ? (
+          <CheckCircle2 className="mt-0.5 h-4 w-4" />
+        ) : (
+          <AlertCircle className="mt-0.5 h-4 w-4" />
+        )}
         <span>{status.message}</span>
       </div>
     ) : null;
@@ -324,9 +448,15 @@ export default function TheHeritageDriversLandingPage() {
       <header className="border-b border-[#2a2213]">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-5">
           <div className="flex items-center gap-4">
-            <img src="/Logo.png" alt="The Heritage Drivers" className="h-10 w-10 object-contain" />
+            <img
+              src="/logo.png"
+              alt="The Heritage Drivers"
+              className="h-10 w-10 object-contain"
+            />
             <div>
-              <div className="text-xs uppercase tracking-[0.4em] text-[#b6924f]">The Heritage Drivers</div>
+              <div className="text-xs uppercase tracking-[0.4em] text-[#b6924f]">
+                The Heritage Drivers
+              </div>
               <div className="text-sm text-[#a89c84]">Motor Cars & Culture</div>
             </div>
           </div>
@@ -336,6 +466,7 @@ export default function TheHeritageDriversLandingPage() {
               {content.nav.map((n) => (
                 <span key={n}>{n}</span>
               ))}
+
               {!isLoggedIn ? (
                 <button
                   onClick={() => {
@@ -372,97 +503,206 @@ export default function TheHeritageDriversLandingPage() {
 
         {!supabaseConfigured && (
           <div className="mb-10 rounded-[1.75rem] border border-[#4b2f20] bg-[#16100d] p-6">
-            <p className="text-xs uppercase tracking-[0.35em] text-[#b6924f]">{content.setup.title}</p>
-            <p className="mt-3 max-w-3xl text-sm leading-7 text-[#cfbea3]">{content.setup.text}</p>
+            <p className="text-xs uppercase tracking-[0.35em] text-[#b6924f]">
+              {content.setup.title}
+            </p>
+            <p className="mt-3 max-w-3xl text-sm leading-7 text-[#cfbea3]">
+              {content.setup.text}
+            </p>
           </div>
         )}
 
         <section>
           <div className="mb-10 flex justify-center">
-            <img src="/Logo.png" alt="The Heritage Drivers" className="h-40 object-contain" />
+            <img
+              src="/logo.png"
+              alt="The Heritage Drivers"
+              className="h-40 object-contain"
+            />
           </div>
-          <p className="text-sm uppercase tracking-[0.4em] text-[#b6924f]">{content.heroTag}</p>
 
-          <h1 className="mt-6 text-5xl leading-tight text-[#f2e6cf]">
-            {content.heroTitle.split("\n").map((line, i) => (
-              <span key={i}>
-                {line}
-                <br />
-              </span>
-            ))}
-          </h1>
+          {!isLoggedIn ? (
+            <>
+              <p className="text-sm uppercase tracking-[0.4em] text-[#b6924f]">
+                {content.heroTag}
+              </p>
 
-          <p className="mt-6 max-w-xl text-lg text-[#bcb09a]">{content.heroText}</p>
+              <h1 className="mt-6 text-5xl leading-tight text-[#f2e6cf]">
+                {content.heroTitle.split("\n").map((line, i) => (
+                  <span key={i}>
+                    {line}
+                    <br />
+                  </span>
+                ))}
+              </h1>
 
-          <div className="mt-10 flex flex-wrap gap-4">
-            <button className="bg-[#b6924f] px-6 py-3 text-black">{content.cta1}</button>
-            <button className="border border-[#b6924f] px-6 py-3">{content.cta2}</button>
-            {!isLoggedIn && (
+              <p className="mt-6 max-w-xl text-lg text-[#bcb09a]">
+                {content.heroText}
+              </p>
+
+              <div className="mt-10 flex flex-wrap gap-4">
+                <button className="bg-[#b6924f] px-6 py-3 text-black">
+                  {content.cta1}
+                </button>
+                <button className="border border-[#b6924f] px-6 py-3">
+                  {content.cta2}
+                </button>
+                <button
+                  onClick={() => {
+                    setAuthMode("login");
+                    setShowLogin(true);
+                  }}
+                  className="border border-[#3b311d] px-6 py-3 text-[#e8dcc0]"
+                >
+                  {content.login.button}
+                </button>
+              </div>
+
+              <div className="mt-10 flex flex-wrap gap-6 text-sm uppercase text-[#8b7e65]">
+                {content.tags.map((tag) => (
+                  <span key={tag}>{tag}</span>
+                ))}
+              </div>
+            </>
+          ) : (
+            <>
+              <p className="text-sm uppercase tracking-[0.4em] text-[#b6924f]">
+                {content.members.secure}
+              </p>
+
+              <h1 className="mt-6 text-5xl leading-tight text-[#f2e6cf]">
+                {content.members.welcome}, {memberName}
+              </h1>
+
+              <p className="mt-6 max-w-2xl text-lg text-[#bcb09a]">
+                {content.members.intro}
+              </p>
+
+              <div className="mt-10 grid gap-6 lg:grid-cols-3">
+                <div className="rounded-[1.5rem] border border-[#2d2416] bg-[#131313] p-6">
+                  <div className="flex items-center gap-3">
+                    <Calendar className="h-5 w-5 text-[#b6924f]" />
+                    <h3 className="text-lg text-[#f2e6cf]">
+                      {content.members.eventTitle}
+                    </h3>
+                  </div>
+                  <p className="mt-3 text-sm leading-6 text-[#a99c83]">
+                    {content.members.eventText}
+                  </p>
+                </div>
+
+                <div className="rounded-[1.5rem] border border-[#2d2416] bg-[#131313] p-6">
+                  <div className="flex items-center gap-3">
+                    <Mail className="h-5 w-5 text-[#b6924f]" />
+                    <h3 className="text-lg text-[#f2e6cf]">
+                      {content.members.registryTitle}
+                    </h3>
+                  </div>
+                  <p className="mt-3 text-sm leading-6 text-[#a99c83]">
+                    {content.members.registryText}
+                  </p>
+                </div>
+
+                <div className="rounded-[1.5rem] border border-[#2d2416] bg-[#131313] p-6">
+                  <div className="flex items-center gap-3">
+                    <Wrench className="h-5 w-5 text-[#b6924f]" />
+                    <h3 className="text-lg text-[#f2e6cf]">
+                      {content.members.atelierTitle}
+                    </h3>
+                  </div>
+                  <p className="mt-3 text-sm leading-6 text-[#a99c83]">
+                    {content.members.atelierText}
+                  </p>
+                </div>
+              </div>
+            </>
+          )}
+        </section>
+
+        {!isLoggedIn && (
+          <section className="mt-24 grid gap-6 lg:grid-cols-2">
+            <div>
+              <h2 className="text-3xl text-[#f0e3c6]">
+                {content.philosophyTitle}
+              </h2>
+            </div>
+
+            <div className="rounded-[2rem] border border-[#2d2416] bg-[#111111] p-8">
+              <div className="flex items-center gap-3">
+                <div className="rounded-full border border-[#3a2f1c] p-3">
+                  <User className="h-5 w-5 text-[#b6924f]" />
+                </div>
+                <div>
+                  <p className="text-xs uppercase tracking-[0.35em] text-[#b6924f]">
+                    {content.members.label}
+                  </p>
+                  <p className="mt-2 text-sm text-[#b9ad95]">
+                    {content.login.subtitle}
+                  </p>
+                </div>
+              </div>
+
               <button
                 onClick={() => {
                   setAuthMode("login");
                   setShowLogin(true);
                 }}
-                className="border border-[#3b311d] px-6 py-3 text-[#e8dcc0]"
+                className="mt-6 rounded-full border border-[#b6924f] px-5 py-3 text-sm uppercase tracking-[0.24em] text-[#f0e3c6] transition hover:bg-[#b6924f] hover:text-black"
               >
                 {content.login.button}
               </button>
-            )}
-          </div>
-
-          <div className="mt-10 flex flex-wrap gap-6 text-sm uppercase text-[#8b7e65]">
-            {content.tags.map((tag) => (
-              <span key={tag}>{tag}</span>
-            ))}
-          </div>
-        </section>
-
-        <section className="mt-24 grid gap-6 lg:grid-cols-2">
-          <div>
-            <h2 className="text-3xl text-[#f0e3c6]">{content.philosophyTitle}</h2>
-          </div>
-          <div className="rounded-[2rem] border border-[#2d2416] bg-[#111111] p-8">
-            <div className="flex items-center gap-3">
-              <div className="rounded-full border border-[#3a2f1c] p-3">
-                <User className="h-5 w-5 text-[#b6924f]" />
-              </div>
-              <div>
-                <p className="text-xs uppercase tracking-[0.35em] text-[#b6924f]">{content.members.label}</p>
-                <p className="mt-2 text-sm text-[#b9ad95]">{content.login.subtitle}</p>
-              </div>
             </div>
-            <button
-              onClick={() => {
-                setAuthMode("login");
-                setShowLogin(true);
-              }}
-              className="mt-6 rounded-full border border-[#b6924f] px-5 py-3 text-sm uppercase tracking-[0.24em] text-[#f0e3c6] transition hover:bg-[#b6924f] hover:text-black"
-            >
-              {content.login.button}
-            </button>
-          </div>
-        </section>
+          </section>
+        )}
 
-        <section className="mt-24">
-          <h2 className="text-3xl text-[#f0e3c6]">{content.membershipTitle}</h2>
-          <p className="mt-6 max-w-xl text-[#bcb09a]">{content.membershipText}</p>
+        {!isLoggedIn && (
+          <section className="mt-24">
+            <h2 className="text-3xl text-[#f0e3c6]">
+              {content.membershipTitle}
+            </h2>
+            <p className="mt-6 max-w-xl text-[#bcb09a]">
+              {content.membershipText}
+            </p>
 
-          <div className="mt-10 max-w-md space-y-4">
-            <input placeholder={content.form.name} className="w-full border border-[#342a1a] bg-black p-3 text-[#efe2c5]" />
-            <input placeholder={content.form.email} className="w-full border border-[#342a1a] bg-black p-3 text-[#efe2c5]" />
-            <textarea placeholder={content.form.message} className="w-full border border-[#342a1a] bg-black p-3 text-[#efe2c5]" />
-            <button className="w-full bg-[#b6924f] px-6 py-3 text-black">{content.form.submit}</button>
-          </div>
-        </section>
+            <div className="mt-10 max-w-md space-y-4">
+              <input
+                placeholder={content.form.name}
+                className="w-full border border-[#342a1a] bg-black p-3 text-[#efe2c5]"
+              />
+              <input
+                placeholder={content.form.email}
+                className="w-full border border-[#342a1a] bg-black p-3 text-[#efe2c5]"
+              />
+              <textarea
+                placeholder={content.form.message}
+                className="w-full border border-[#342a1a] bg-black p-3 text-[#efe2c5]"
+              />
+              <button className="w-full bg-[#b6924f] px-6 py-3 text-black">
+                {content.form.submit}
+              </button>
+            </div>
+          </section>
+        )}
 
         <section className="mt-24" id="members">
           <div className="rounded-[2rem] border border-[#2c2415] bg-[#0f0f0f] p-8 shadow-2xl shadow-black/30">
             <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
               <div>
-                <p className="text-xs uppercase tracking-[0.35em] text-[#b6924f]">{content.members.secure}</p>
-                <h2 className="mt-4 text-3xl text-[#f2e6cf]">{content.members.title}</h2>
-                <p className="mt-4 max-w-2xl text-[#b8ad96]">{content.members.subtitle}</p>
+                <p className="text-xs uppercase tracking-[0.35em] text-[#b6924f]">
+                  {isLoggedIn ? "Club Events" : content.members.secure}
+                </p>
+                <h2 className="mt-4 text-3xl text-[#f2e6cf]">
+                  {isLoggedIn
+                    ? "Upcoming Events & Attendance"
+                    : content.members.title}
+                </h2>
+                <p className="mt-4 max-w-2xl text-[#b8ad96]">
+                  {isLoggedIn
+                    ? "Manage upcoming drives, review attendance and maintain event details for the society."
+                    : content.members.subtitle}
+                </p>
               </div>
+
               <div className="flex gap-3">
                 {!isLoggedIn ? (
                   <button
@@ -493,48 +733,171 @@ export default function TheHeritageDriversLandingPage() {
             ) : !isLoggedIn ? (
               <div className="mt-8 grid gap-6 lg:grid-cols-3">
                 {[
-                  { icon: Shield, title: content.members.preview, text: content.members.intro },
-                  { icon: Calendar, title: content.members.eventTitle, text: content.members.eventText },
-                  { icon: Wrench, title: content.members.atelierTitle, text: content.members.atelierText },
+                  {
+                    icon: Shield,
+                    title: content.members.preview,
+                    text: content.members.intro,
+                  },
+                  {
+                    icon: Calendar,
+                    title: content.members.eventTitle,
+                    text: content.members.eventText,
+                  },
+                  {
+                    icon: Wrench,
+                    title: content.members.atelierTitle,
+                    text: content.members.atelierText,
+                  },
                 ].map((item) => {
                   const Icon = item.icon;
                   return (
-                    <div key={item.title} className="rounded-[1.5rem] border border-[#2d2416] bg-[#131313] p-6">
+                    <div
+                      key={item.title}
+                      className="rounded-[1.5rem] border border-[#2d2416] bg-[#131313] p-6"
+                    >
                       <Icon className="h-5 w-5 text-[#b6924f]" />
-                      <h3 className="mt-4 text-lg text-[#f2e6cf]">{item.title}</h3>
-                      <p className="mt-3 text-sm leading-6 text-[#a99c83]">{item.text}</p>
+                      <h3 className="mt-4 text-lg text-[#f2e6cf]">
+                        {item.title}
+                      </h3>
+                      <p className="mt-3 text-sm leading-6 text-[#a99c83]">
+                        {item.text}
+                      </p>
                     </div>
                   );
                 })}
               </div>
             ) : (
-              <div className="mt-8 grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
+              <div className="mt-8 grid gap-6">
                 <div className="rounded-[1.75rem] border border-[#2d2416] bg-[#131313] p-8">
-                  <p className="text-xs uppercase tracking-[0.35em] text-[#b6924f]">{content.members.welcome}</p>
-                  <h3 className="mt-4 text-2xl text-[#f2e6cf]">{memberName}</h3>
-                  <p className="mt-2 text-sm text-[#9f927b]">
-                    {content.members.signedInAs}: {session?.user?.email}
-                  </p>
-                  <p className="mt-4 max-w-2xl text-[#b8ad96]">{content.members.intro}</p>
-                </div>
+                  {eventsLoading ? (
+                    <p className="text-sm text-[#b8ad96]">Loading events...</p>
+                  ) : events.length === 0 ? (
+                    <p className="text-sm text-[#b8ad96]">
+                      No events available yet.
+                    </p>
+                  ) : (
+                    <div className="grid gap-6 lg:grid-cols-2">
+                      {events.map((event) => (
+                        <div
+                          key={event.id}
+                          className="rounded-[1.5rem] border border-[#2d2416] bg-[#0f0f0f] p-6"
+                        >
+                          <p className="text-xs uppercase tracking-[0.3em] text-[#b6924f]">
+                            Upcoming Event
+                          </p>
 
-                <div className="grid gap-6">
-                  {[
-                    { icon: Calendar, title: content.members.eventTitle, text: content.members.eventText },
-                    { icon: Mail, title: content.members.registryTitle, text: content.members.registryText },
-                    { icon: Wrench, title: content.members.atelierTitle, text: content.members.atelierText },
-                  ].map((item) => {
-                    const Icon = item.icon;
-                    return (
-                      <div key={item.title} className="rounded-[1.5rem] border border-[#2d2416] bg-[#131313] p-6">
-                        <div className="flex items-center gap-3">
-                          <Icon className="h-5 w-5 text-[#b6924f]" />
-                          <h3 className="text-lg text-[#f2e6cf]">{item.title}</h3>
+                          <h4 className="mt-3 text-xl text-[#f2e6cf]">
+                            {event.title}
+                          </h4>
+
+                          <p className="mt-2 text-sm text-[#a99c83]">
+                            {event.event_date}
+                            {event.location ? ` · ${event.location}` : ""}
+                          </p>
+
+                          {event.description && (
+                            <p className="mt-4 text-sm leading-6 text-[#a99c83]">
+                              {event.description}
+                            </p>
+                          )}
+
+                          {event.max_participants && (
+                            <p className="mt-4 text-sm text-[#b8ad96]">
+                              Max participants: {event.max_participants}
+                            </p>
+                          )}
                         </div>
-                        <p className="mt-3 text-sm leading-6 text-[#a99c83]">{item.text}</p>
+                      ))}
+                    </div>
+                  )}
+
+                  {isAdmin && (
+                    <div className="mt-8 rounded-[1.5rem] border border-[#2d2416] bg-[#0f0f0f] p-6">
+                      <p className="text-xs uppercase tracking-[0.3em] text-[#b6924f]">
+                        Admin Event Management
+                      </p>
+
+                      <div className="mt-6 grid gap-4 lg:grid-cols-2">
+                        <input
+                          value={eventForm.title}
+                          onChange={(e) =>
+                            setEventForm({
+                              ...eventForm,
+                              title: e.target.value,
+                            })
+                          }
+                          placeholder="Event title"
+                          className="w-full rounded-2xl border border-[#342a1a] bg-black/60 p-4 text-[#efe2c5] outline-none placeholder:text-[#796c56]"
+                        />
+
+                        <input
+                          value={eventForm.event_date}
+                          onChange={(e) =>
+                            setEventForm({
+                              ...eventForm,
+                              event_date: e.target.value,
+                            })
+                          }
+                          type="date"
+                          className="w-full rounded-2xl border border-[#342a1a] bg-black/60 p-4 text-[#efe2c5] outline-none"
+                        />
+
+                        <input
+                          value={eventForm.location}
+                          onChange={(e) =>
+                            setEventForm({
+                              ...eventForm,
+                              location: e.target.value,
+                            })
+                          }
+                          placeholder="Location"
+                          className="w-full rounded-2xl border border-[#342a1a] bg-black/60 p-4 text-[#efe2c5] outline-none placeholder:text-[#796c56]"
+                        />
+
+                        <input
+                          value={eventForm.max_participants}
+                          onChange={(e) =>
+                            setEventForm({
+                              ...eventForm,
+                              max_participants: e.target.value,
+                            })
+                          }
+                          type="number"
+                          placeholder="Max participants"
+                          className="w-full rounded-2xl border border-[#342a1a] bg-black/60 p-4 text-[#efe2c5] outline-none placeholder:text-[#796c56]"
+                        />
+
+                        <textarea
+                          value={eventForm.description}
+                          onChange={(e) =>
+                            setEventForm({
+                              ...eventForm,
+                              description: e.target.value,
+                            })
+                          }
+                          placeholder="Description"
+                          className="lg:col-span-2 w-full rounded-2xl border border-[#342a1a] bg-black/60 p-4 text-[#efe2c5] outline-none placeholder:text-[#796c56]"
+                        />
                       </div>
-                    );
-                  })}
+
+                      <div className="mt-6 flex flex-wrap gap-4">
+                        <button
+                          onClick={handleCreateEvent}
+                          className="rounded-full bg-[#b6924f] px-5 py-3 text-sm uppercase tracking-[0.22em] text-black transition hover:bg-[#c6a45d]"
+                        >
+                          Create Event
+                        </button>
+
+                        <button className="rounded-full border border-[#b6924f] px-5 py-3 text-sm uppercase tracking-[0.22em] text-[#f2e6cf] transition hover:bg-[#b6924f] hover:text-black">
+                          Edit Events
+                        </button>
+
+                        <button className="rounded-full border border-[#3b311d] px-5 py-3 text-sm uppercase tracking-[0.22em] text-[#f2e6cf] transition hover:border-[#b6924f]">
+                          View Participants
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -546,10 +909,17 @@ export default function TheHeritageDriversLandingPage() {
             <div className="w-full max-w-md rounded-[2rem] border border-[#3a2f1b] bg-[#0d0d0d] p-8 shadow-2xl shadow-black/40">
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <p className="text-xs uppercase tracking-[0.35em] text-[#b6924f]">The Heritage Drivers</p>
-                  <h3 className="mt-3 text-2xl text-[#f0e3c6]">{content.login.title}</h3>
-                  <p className="mt-3 text-sm leading-6 text-[#ad9f86]">{content.login.subtitle}</p>
+                  <p className="text-xs uppercase tracking-[0.35em] text-[#b6924f]">
+                    The Heritage Drivers
+                  </p>
+                  <h3 className="mt-3 text-2xl text-[#f0e3c6]">
+                    {content.login.title}
+                  </h3>
+                  <p className="mt-3 text-sm leading-6 text-[#ad9f86]">
+                    {content.login.subtitle}
+                  </p>
                 </div>
+
                 <button
                   onClick={() => setShowLogin(false)}
                   className="rounded-full border border-[#332818] px-3 py-1 text-xs uppercase tracking-[0.2em] text-[#b7aa90] hover:border-[#b6924f] hover:text-white"
@@ -598,7 +968,9 @@ export default function TheHeritageDriversLandingPage() {
                   className="flex w-full items-center justify-center gap-2 rounded-full bg-[#b6924f] px-6 py-4 text-sm uppercase tracking-[0.28em] text-black transition hover:bg-[#c6a45d] disabled:cursor-not-allowed disabled:opacity-70"
                 >
                   {loading && <Loader2 className="h-4 w-4 animate-spin" />}
-                  {authMode === "login" ? content.login.submit : content.login.signUp}
+                  {authMode === "login"
+                    ? content.login.submit
+                    : content.login.signUp}
                 </button>
 
                 <button
@@ -608,11 +980,17 @@ export default function TheHeritageDriversLandingPage() {
                   }}
                   className="w-full text-sm text-[#cdbd9f] underline underline-offset-4 hover:text-white"
                 >
-                  {authMode === "login" ? content.login.switchToSignup : content.login.switchToLogin}
+                  {authMode === "login"
+                    ? content.login.switchToSignup
+                    : content.login.switchToLogin}
                 </button>
 
-                <p className="text-center text-xs text-[#7f735c]">{content.login.forgot}</p>
-                <p className="text-center text-xs uppercase tracking-[0.25em] text-[#7f735c]">{content.login.note}</p>
+                <p className="text-center text-xs text-[#7f735c]">
+                  {content.login.forgot}
+                </p>
+                <p className="text-center text-xs uppercase tracking-[0.25em] text-[#7f735c]">
+                  {content.login.note}
+                </p>
               </div>
             </div>
           </div>
