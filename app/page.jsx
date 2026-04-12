@@ -43,13 +43,22 @@ export default function TheHeritageDriversLandingPage() {
 
   const [events, setEvents] = useState([]);
   const [eventsLoading, setEventsLoading] = useState(false);
+
+  const [participants, setParticipants] = useState([]);
+  const [participantsView, setParticipantsView] = useState(null);
+
   const [eventForm, setEventForm] = useState({
     title: "",
-    description: "",
+    short_description: "",
+    long_description: "",
     event_date: "",
     location: "",
     max_participants: "",
+    image_url: "",
   });
+
+  const [eventImageFile, setEventImageFile] = useState(null);
+  const [editingEventId, setEditingEventId] = useState(null);
 
   const t = {
     en: {
@@ -242,6 +251,18 @@ export default function TheHeritageDriversLandingPage() {
     setEventsLoading(false);
   };
 
+  const loadParticipants = async () => {
+    if (!supabase) return;
+
+    const { data, error } = await supabase
+      .from("event_participants")
+      .select("id, event_id, user_id, status, created_at");
+
+    if (!error && data) {
+      setParticipants(data);
+    }
+  };
+
   useEffect(() => {
     if (!supabase) {
       setInitializing(false);
@@ -252,15 +273,17 @@ export default function TheHeritageDriversLandingPage() {
 
     const init = async () => {
       const {
-        data: { session },
+        data: { session: currentSession },
       } = await supabase.auth.getSession();
 
       if (!mounted) return;
-      setSession(session);
 
-      if (session?.user) {
-        await loadProfile(session.user.id);
+      setSession(currentSession);
+
+      if (currentSession?.user) {
+        await loadProfile(currentSession.user.id);
         await loadEvents();
+        await loadParticipants();
       }
 
       setInitializing(false);
@@ -278,9 +301,12 @@ export default function TheHeritageDriversLandingPage() {
       if (currentSession?.user) {
         await loadProfile(currentSession.user.id);
         await loadEvents();
+        await loadParticipants();
       } else {
         setProfile(null);
         setEvents([]);
+        setParticipants([]);
+        setParticipantsView(null);
       }
     });
 
@@ -289,6 +315,30 @@ export default function TheHeritageDriversLandingPage() {
       subscription.unsubscribe();
     };
   }, []);
+
+  const handleUploadEventImage = async () => {
+    if (!supabase || !eventImageFile || !session?.user) return "";
+
+    const fileExt = eventImageFile.name.split(".").pop();
+    const fileName = `${session.user.id}-${Date.now()}.${fileExt}`;
+    const filePath = `events/${fileName}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from("event-images")
+      .upload(filePath, eventImageFile, {
+        upsert: false,
+      });
+
+    if (uploadError) {
+      throw uploadError;
+    }
+
+    const { data } = supabase.storage
+      .from("event-images")
+      .getPublicUrl(filePath);
+
+    return data?.publicUrl || "";
+  };
 
   const resetStatus = () => setStatus({ type: "", message: "" });
 
@@ -372,42 +422,171 @@ export default function TheHeritageDriversLandingPage() {
       return;
     }
 
-    const payload = {
-      title: eventForm.title,
-      description: eventForm.description,
-      event_date: eventForm.event_date,
-      location: eventForm.location,
-      max_participants: eventForm.max_participants
-        ? Number(eventForm.max_participants)
-        : null,
-      created_by: session.user.id,
-      is_active: true,
-    };
+    try {
+      let uploadedImageUrl = eventForm.image_url;
 
-    const { error } = await supabase.from("events").insert(payload);
+      if (eventImageFile) {
+        uploadedImageUrl = await handleUploadEventImage();
+      }
 
-    if (error) {
+      const payload = {
+        title: eventForm.title,
+        short_description: eventForm.short_description,
+        long_description: eventForm.long_description,
+        event_date: eventForm.event_date,
+        location: eventForm.location,
+        max_participants: eventForm.max_participants
+          ? Number(eventForm.max_participants)
+          : null,
+        image_url: uploadedImageUrl || null,
+        created_by: session.user.id,
+        is_active: true,
+      };
+
+      let error = null;
+
+      if (editingEventId) {
+        const response = await supabase
+          .from("events")
+          .update(payload)
+          .eq("id", editingEventId);
+
+        error = response.error;
+      } else {
+        const response = await supabase.from("events").insert(payload);
+        error = response.error;
+      }
+
+      if (error) {
+        setStatus({
+          type: "error",
+          message: error.message || content.messages.eventCreateError,
+        });
+        return;
+      }
+
+      setStatus({
+        type: "success",
+        message: editingEventId
+          ? "Event updated successfully."
+          : content.messages.eventCreateSuccess,
+      });
+
+      setEventForm({
+        title: "",
+        short_description: "",
+        long_description: "",
+        event_date: "",
+        location: "",
+        max_participants: "",
+        image_url: "",
+      });
+
+      setEventImageFile(null);
+      setEditingEventId(null);
+
+      await loadEvents();
+    } catch (err) {
       setStatus({
         type: "error",
-        message: error.message || content.messages.eventCreateError,
+        message: err.message || content.messages.eventCreateError,
+      });
+    }
+  };
+
+  const handleEditEvent = (event) => {
+    setEditingEventId(event.id);
+    setEventForm({
+      title: event.title || "",
+      short_description: event.short_description || "",
+      long_description: event.long_description || "",
+      event_date: event.event_date || "",
+      location: event.location || "",
+      max_participants: event.max_participants?.toString() || "",
+      image_url: event.image_url || "",
+    });
+    setEventImageFile(null);
+  };
+
+  const isRegisteredForEvent = (eventId) => {
+    if (!session?.user) return false;
+
+    return participants.some(
+      (p) => p.event_id === eventId && p.user_id === session.user.id
+    );
+  };
+
+  const handleToggleParticipation = async (eventId, checked) => {
+    if (!supabase || !session?.user) return;
+
+    if (checked) {
+      const { error } = await supabase.from("event_participants").insert({
+        event_id: eventId,
+        user_id: session.user.id,
+        status: "registered",
+      });
+
+      if (error) {
+        setStatus({ type: "error", message: error.message });
+        return;
+      }
+    } else {
+      const { error } = await supabase
+        .from("event_participants")
+        .delete()
+        .eq("event_id", eventId)
+        .eq("user_id", session.user.id);
+
+      if (error) {
+        setStatus({ type: "error", message: error.message });
+        return;
+      }
+    }
+
+    await loadParticipants();
+  };
+
+  const handleViewParticipants = async (eventId) => {
+    if (!supabase) return;
+
+    const { data, error } = await supabase
+      .from("event_participants")
+      .select("id, event_id, user_id, status, created_at")
+      .eq("event_id", eventId);
+
+    if (error) {
+      setStatus({ type: "error", message: error.message });
+      return;
+    }
+
+    const userIds = (data || []).map((row) => row.user_id);
+
+    if (userIds.length === 0) {
+      setParticipantsView({
+        eventId,
+        rows: [],
       });
       return;
     }
 
-    setStatus({
-      type: "success",
-      message: content.messages.eventCreateSuccess,
-    });
+    const { data: profilesData } = await supabase
+      .from("member_profiles")
+      .select("id, full_name")
+      .in("id", userIds);
 
-    setEventForm({
-      title: "",
-      description: "",
-      event_date: "",
-      location: "",
-      max_participants: "",
-    });
+    const nameMap = new Map(
+      (profilesData || []).map((row) => [row.id, row.full_name])
+    );
 
-    await loadEvents();
+    const rows = (data || []).map((row) => ({
+      ...row,
+      full_name: nameMap.get(row.user_id) || row.user_id,
+    }));
+
+    setParticipantsView({
+      eventId,
+      rows,
+    });
   };
 
   const handleLogout = async () => {
@@ -473,14 +652,14 @@ export default function TheHeritageDriversLandingPage() {
                     setAuthMode("login");
                     setShowLogin(true);
                   }}
-                  className="hidden rounded-full border border-[#3b311d] px-4 py-2 text-xs uppercase tracking-[0.22em] text-[#e8dcc0] transition hover:border-[#b6924f] hover:text-white md:inline-flex"
+                  className="inline-flex rounded-full border border-[#3b311d] px-4 py-2 text-xs uppercase tracking-[0.22em] text-[#e8dcc0] transition hover:border-[#b6924f] hover:text-white"
                 >
                   {content.login.button}
                 </button>
               ) : (
                 <button
                   onClick={handleLogout}
-                  className="hidden items-center gap-2 rounded-full border border-[#3b311d] px-4 py-2 text-xs uppercase tracking-[0.22em] text-[#e8dcc0] transition hover:border-[#b6924f] hover:text-white md:inline-flex"
+                  className="inline-flex items-center gap-2 rounded-full border border-[#3b311d] px-4 py-2 text-xs uppercase tracking-[0.22em] text-[#e8dcc0] transition hover:border-[#b6924f] hover:text-white"
                 >
                   <LogOut className="h-3.5 w-3.5" />
                   {content.members.signOut}
@@ -782,6 +961,14 @@ export default function TheHeritageDriversLandingPage() {
                           key={event.id}
                           className="rounded-[1.5rem] border border-[#2d2416] bg-[#0f0f0f] p-6"
                         >
+                          {event.image_url && (
+                            <img
+                              src={event.image_url}
+                              alt={event.title}
+                              className="mb-4 h-48 w-full rounded-2xl object-cover"
+                            />
+                          )}
+
                           <p className="text-xs uppercase tracking-[0.3em] text-[#b6924f]">
                             Upcoming Event
                           </p>
@@ -795,9 +982,15 @@ export default function TheHeritageDriversLandingPage() {
                             {event.location ? ` · ${event.location}` : ""}
                           </p>
 
-                          {event.description && (
+                          {event.short_description && (
                             <p className="mt-4 text-sm leading-6 text-[#a99c83]">
-                              {event.description}
+                              {event.short_description}
+                            </p>
+                          )}
+
+                          {event.long_description && (
+                            <p className="mt-4 text-sm leading-6 text-[#8f836d]">
+                              {event.long_description}
                             </p>
                           )}
 
@@ -806,15 +999,77 @@ export default function TheHeritageDriversLandingPage() {
                               Max participants: {event.max_participants}
                             </p>
                           )}
+
+                          <div className="mt-6 flex items-center gap-3">
+                            <input
+                              id={`join-${event.id}`}
+                              type="checkbox"
+                              checked={isRegisteredForEvent(event.id)}
+                              onChange={(e) =>
+                                handleToggleParticipation(
+                                  event.id,
+                                  e.target.checked
+                                )
+                              }
+                              className="h-4 w-4 accent-[#b6924f]"
+                            />
+                            <label
+                              htmlFor={`join-${event.id}`}
+                              className="text-sm text-[#e8dcc0]"
+                            >
+                              Attend this event
+                            </label>
+                          </div>
+
+                          {isAdmin && (
+                            <div className="mt-6 flex flex-wrap gap-3">
+                              <button
+                                onClick={() => handleEditEvent(event)}
+                                className="rounded-full border border-[#b6924f] px-4 py-2 text-xs uppercase tracking-[0.18em] text-[#f2e6cf] transition hover:bg-[#b6924f] hover:text-black"
+                              >
+                                Modify Event
+                              </button>
+
+                              <button
+                                onClick={() => handleViewParticipants(event.id)}
+                                className="rounded-full border border-[#3b311d] px-4 py-2 text-xs uppercase tracking-[0.18em] text-[#f2e6cf] transition hover:border-[#b6924f]"
+                              >
+                                Participants
+                              </button>
+                            </div>
+                          )}
                         </div>
                       ))}
                     </div>
                   )}
 
                   {isAdmin && (
+                    <div className="mt-8 flex flex-wrap gap-4">
+                      <button
+                        onClick={() => {
+                          setEditingEventId(null);
+                          setEventForm({
+                            title: "",
+                            short_description: "",
+                            long_description: "",
+                            event_date: "",
+                            location: "",
+                            max_participants: "",
+                            image_url: "",
+                          });
+                          setEventImageFile(null);
+                        }}
+                        className="rounded-full bg-[#b6924f] px-5 py-3 text-sm uppercase tracking-[0.22em] text-black transition hover:bg-[#c6a45d]"
+                      >
+                        Create Event
+                      </button>
+                    </div>
+                  )}
+
+                  {isAdmin && (
                     <div className="mt-8 rounded-[1.5rem] border border-[#2d2416] bg-[#0f0f0f] p-6">
                       <p className="text-xs uppercase tracking-[0.3em] text-[#b6924f]">
-                        Admin Event Management
+                        {editingEventId ? "Modify Event" : "Create Event"}
                       </p>
 
                       <div className="mt-6 grid gap-4 lg:grid-cols-2">
@@ -867,16 +1122,37 @@ export default function TheHeritageDriversLandingPage() {
                           className="w-full rounded-2xl border border-[#342a1a] bg-black/60 p-4 text-[#efe2c5] outline-none placeholder:text-[#796c56]"
                         />
 
-                        <textarea
-                          value={eventForm.description}
+                        <input
+                          value={eventForm.short_description}
                           onChange={(e) =>
                             setEventForm({
                               ...eventForm,
-                              description: e.target.value,
+                              short_description: e.target.value,
                             })
                           }
-                          placeholder="Description"
+                          placeholder="Short description"
                           className="lg:col-span-2 w-full rounded-2xl border border-[#342a1a] bg-black/60 p-4 text-[#efe2c5] outline-none placeholder:text-[#796c56]"
+                        />
+
+                        <textarea
+                          value={eventForm.long_description}
+                          onChange={(e) =>
+                            setEventForm({
+                              ...eventForm,
+                              long_description: e.target.value,
+                            })
+                          }
+                          placeholder="Detailed description"
+                          className="lg:col-span-2 w-full rounded-2xl border border-[#342a1a] bg-black/60 p-4 text-[#efe2c5] outline-none placeholder:text-[#796c56]"
+                        />
+
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) =>
+                            setEventImageFile(e.target.files?.[0] || null)
+                          }
+                          className="lg:col-span-2 w-full rounded-2xl border border-[#342a1a] bg-black/60 p-4 text-[#efe2c5] outline-none"
                         />
                       </div>
 
@@ -885,16 +1161,62 @@ export default function TheHeritageDriversLandingPage() {
                           onClick={handleCreateEvent}
                           className="rounded-full bg-[#b6924f] px-5 py-3 text-sm uppercase tracking-[0.22em] text-black transition hover:bg-[#c6a45d]"
                         >
-                          Create Event
+                          {editingEventId ? "Save Changes" : "Create Event"}
                         </button>
 
-                        <button className="rounded-full border border-[#b6924f] px-5 py-3 text-sm uppercase tracking-[0.22em] text-[#f2e6cf] transition hover:bg-[#b6924f] hover:text-black">
-                          Edit Events
-                        </button>
+                        {editingEventId && (
+                          <button
+                            onClick={() => {
+                              setEditingEventId(null);
+                              setEventForm({
+                                title: "",
+                                short_description: "",
+                                long_description: "",
+                                event_date: "",
+                                location: "",
+                                max_participants: "",
+                                image_url: "",
+                              });
+                              setEventImageFile(null);
+                            }}
+                            className="rounded-full border border-[#b6924f] px-5 py-3 text-sm uppercase tracking-[0.22em] text-[#f2e6cf] transition hover:bg-[#b6924f] hover:text-black"
+                          >
+                            Cancel Edit
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  )}
 
-                        <button className="rounded-full border border-[#3b311d] px-5 py-3 text-sm uppercase tracking-[0.22em] text-[#f2e6cf] transition hover:border-[#b6924f]">
-                          View Participants
+                  {participantsView && (
+                    <div className="mt-8 rounded-[1.5rem] border border-[#2d2416] bg-[#0f0f0f] p-6">
+                      <div className="flex items-center justify-between gap-4">
+                        <p className="text-xs uppercase tracking-[0.3em] text-[#b6924f]">
+                          Participants
+                        </p>
+                        <button
+                          onClick={() => setParticipantsView(null)}
+                          className="rounded-full border border-[#3b311d] px-4 py-2 text-xs uppercase tracking-[0.18em] text-[#f2e6cf] transition hover:border-[#b6924f]"
+                        >
+                          Close
                         </button>
+                      </div>
+
+                      <div className="mt-6 space-y-3">
+                        {participantsView.rows.length === 0 ? (
+                          <p className="text-sm text-[#b8ad96]">
+                            No participants registered yet.
+                          </p>
+                        ) : (
+                          participantsView.rows.map((row) => (
+                            <div
+                              key={row.id}
+                              className="rounded-xl border border-[#2d2416] bg-[#131313] p-4 text-sm text-[#e8dcc0]"
+                            >
+                              {row.full_name}
+                            </div>
+                          ))
+                        )}
                       </div>
                     </div>
                   )}
