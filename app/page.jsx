@@ -12,6 +12,10 @@ import {
   Loader2,
   CheckCircle2,
   AlertCircle,
+  Trash2,
+  Image as ImageIcon,
+  Paperclip,
+  Save,
 } from "lucide-react";
 import { createClient } from "@supabase/supabase-js";
 
@@ -27,12 +31,26 @@ const supabase = supabaseConfigured
   ? createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
   : null;
 
+const emptyEventForm = {
+  title: "",
+  short_description: "",
+  long_description: "",
+  event_date: "",
+  location: "",
+  max_participants: "",
+  image_url: "",
+  attachment_name: "",
+  attachment_url: "",
+};
+
 export default function TheHeritageDriversLandingPage() {
   const [lang, setLang] = useState("en");
   const [showLogin, setShowLogin] = useState(false);
   const [authMode, setAuthMode] = useState("login");
+
   const [session, setSession] = useState(null);
   const [profile, setProfile] = useState(null);
+
   const [loading, setLoading] = useState(false);
   const [initializing, setInitializing] = useState(true);
   const [status, setStatus] = useState({ type: "", message: "" });
@@ -47,18 +65,17 @@ export default function TheHeritageDriversLandingPage() {
   const [participants, setParticipants] = useState([]);
   const [participantsView, setParticipantsView] = useState(null);
 
-  const [eventForm, setEventForm] = useState({
-    title: "",
-    short_description: "",
-    long_description: "",
-    event_date: "",
-    location: "",
-    max_participants: "",
-    image_url: "",
-  });
-
+  const [eventForm, setEventForm] = useState(emptyEventForm);
   const [eventImageFile, setEventImageFile] = useState(null);
+  const [eventAttachmentFile, setEventAttachmentFile] = useState(null);
   const [editingEventId, setEditingEventId] = useState(null);
+  const [eventSaving, setEventSaving] = useState(false);
+
+  const [accountName, setAccountName] = useState("");
+  const [accountEmail, setAccountEmail] = useState("");
+  const [accountPassword, setAccountPassword] = useState("");
+  const [accountPasswordConfirm, setAccountPasswordConfirm] = useState("");
+  const [accountLoading, setAccountLoading] = useState(false);
 
   const t = {
     en: {
@@ -93,7 +110,7 @@ export default function TheHeritageDriversLandingPage() {
         close: "Close",
         switchToLogin: "Already registered? Sign in",
         switchToSignup: "New member? Create access",
-        forgot: "Use password reset via Supabase later if desired.",
+        forgot: "Password reset can be added via Supabase if desired.",
       },
       members: {
         label: "Members",
@@ -102,7 +119,7 @@ export default function TheHeritageDriversLandingPage() {
           "A discreet section for members, events and society information.",
         welcome: "Welcome back",
         intro:
-          "Your account is now protected by Supabase authentication. Member data can be extended with events, directories and protected content.",
+          "Your account is protected by Supabase authentication. Member data, events and protected content can be maintained securely.",
         eventTitle: "Upcoming Drive",
         eventText: "Season Opening · 19.04.2026 · Private confirmation required.",
         registryTitle: "Members Notes",
@@ -128,9 +145,58 @@ export default function TheHeritageDriversLandingPage() {
         logoutSuccess: "You have been signed out.",
         genericError:
           "Something went wrong. Please review the configuration and try again.",
-        notAuthorized: "Not authorized to create events.",
-        eventCreateError: "Could not create event.",
+        notAuthorized: "Not authorized to perform this action.",
+        eventCreateError: "Could not save event.",
         eventCreateSuccess: "Event created successfully.",
+        eventUpdateSuccess: "Event updated successfully.",
+        eventDeleteSuccess: "Event deleted successfully.",
+        eventDeleteConfirm: "Do you really want to delete this event?",
+        profileUpdateSuccess: "Profile name updated successfully.",
+        emailUpdateSuccess:
+          "Email update requested. Please confirm via the email sent by Supabase.",
+        passwordUpdateSuccess: "Password updated successfully.",
+        passwordMismatch: "The new passwords do not match.",
+        passwordTooShort: "Please use a password with at least 8 characters.",
+        participantUpdateSuccess: "Attendance updated successfully.",
+        uploadError: "File upload failed.",
+      },
+      account: {
+        title: "Account Settings",
+        subtitle: "Maintain your member details and access credentials.",
+        fullName: "Display name",
+        email: "Email address",
+        newPassword: "New password",
+        confirmPassword: "Confirm new password",
+        saveName: "Save Name",
+        saveEmail: "Save Email",
+        savePassword: "Save Password",
+      },
+      event: {
+        sectionTitle: "Upcoming Events & Attendance",
+        sectionText:
+          "Manage upcoming drives, review attendance and maintain event details for the society.",
+        loading: "Loading events...",
+        empty: "No events available yet.",
+        attend: "Attend this event",
+        participants: "Participants",
+        close: "Close",
+        modify: "Modify Event",
+        create: "Create Event",
+        cancelEdit: "Cancel Edit",
+        title: "Event title",
+        date: "Event date",
+        location: "Location",
+        maxParticipants: "Max participants",
+        shortDescription: "Short description",
+        longDescription: "Detailed description",
+        image: "Event image",
+        attachment: "Event attachment",
+        saveChanges: "Save Changes",
+        noParticipants: "No participants registered yet.",
+        upcoming: "Upcoming Event",
+        maxParticipantsLabel: "Max participants",
+        openAttachment: "Open attachment",
+        delete: "Delete Event",
       },
     },
     de: {
@@ -175,9 +241,10 @@ export default function TheHeritageDriversLandingPage() {
           "Ein diskreter Bereich für Mitglieder, Veranstaltungen und Gesellschaftsinformationen.",
         welcome: "Willkommen zurück",
         intro:
-          "Ihr Konto ist nun über Supabase-Authentifizierung geschützt. Mitgliederdaten können später um Events, Verzeichnisse und geschützte Inhalte erweitert werden.",
+          "Ihr Konto ist über Supabase-Authentifizierung geschützt. Mitgliederdaten, Events und geschützte Inhalte können sicher gepflegt werden.",
         eventTitle: "Nächste Ausfahrt",
-        eventText: "Season Opening · 19.04.2026 · Teilnahme nur nach Bestätigung.",
+        eventText:
+          "Season Opening · 19.04.2026 · Teilnahme nur nach Bestätigung.",
         registryTitle: "Mitteilungen",
         registryText:
           "Diskrete Updates, Club-Hinweise und Korrespondenz der Gesellschaft.",
@@ -201,9 +268,60 @@ export default function TheHeritageDriversLandingPage() {
         logoutSuccess: "Sie wurden abgemeldet.",
         genericError:
           "Etwas ist schiefgelaufen. Bitte prüfen Sie die Konfiguration und versuchen Sie es erneut.",
-        notAuthorized: "Keine Berechtigung zum Erstellen von Events.",
-        eventCreateError: "Event konnte nicht erstellt werden.",
+        notAuthorized: "Keine Berechtigung für diese Aktion.",
+        eventCreateError: "Event konnte nicht gespeichert werden.",
         eventCreateSuccess: "Event erfolgreich erstellt.",
+        eventUpdateSuccess: "Event erfolgreich aktualisiert.",
+        eventDeleteSuccess: "Event erfolgreich gelöscht.",
+        eventDeleteConfirm: "Soll dieses Event wirklich gelöscht werden?",
+        profileUpdateSuccess: "Anzeigename erfolgreich aktualisiert.",
+        emailUpdateSuccess:
+          "Änderung der E-Mail angestossen. Bitte die Bestätigungs-E-Mail von Supabase prüfen.",
+        passwordUpdateSuccess: "Passwort erfolgreich aktualisiert.",
+        passwordMismatch: "Die neuen Passwörter stimmen nicht überein.",
+        passwordTooShort:
+          "Bitte verwenden Sie ein Passwort mit mindestens 8 Zeichen.",
+        participantUpdateSuccess: "Teilnahme erfolgreich aktualisiert.",
+        uploadError: "Datei-Upload fehlgeschlagen.",
+      },
+      account: {
+        title: "Kontoeinstellungen",
+        subtitle:
+          "Pflegen Sie Ihre Mitgliederdaten und Zugangsinformationen.",
+        fullName: "Anzeigename",
+        email: "E-Mail-Adresse",
+        newPassword: "Neues Passwort",
+        confirmPassword: "Neues Passwort bestätigen",
+        saveName: "Name speichern",
+        saveEmail: "E-Mail speichern",
+        savePassword: "Passwort speichern",
+      },
+      event: {
+        sectionTitle: "Anstehende Events & Teilnahme",
+        sectionText:
+          "Verwalten Sie Ausfahrten, prüfen Sie Anmeldungen und pflegen Sie die Event-Daten der Gesellschaft.",
+        loading: "Events werden geladen...",
+        empty: "Noch keine Events vorhanden.",
+        attend: "An diesem Event teilnehmen",
+        participants: "Teilnehmer",
+        close: "Schliessen",
+        modify: "Event bearbeiten",
+        create: "Event erstellen",
+        cancelEdit: "Bearbeitung abbrechen",
+        title: "Event-Titel",
+        date: "Event-Datum",
+        location: "Ort",
+        maxParticipants: "Max. Teilnehmer",
+        shortDescription: "Kurzbeschreibung",
+        longDescription: "Ausführliche Beschreibung",
+        image: "Event-Bild",
+        attachment: "Event-Anhang",
+        saveChanges: "Änderungen speichern",
+        noParticipants: "Noch keine Teilnehmer angemeldet.",
+        upcoming: "Anstehendes Event",
+        maxParticipantsLabel: "Max. Teilnehmer",
+        openAttachment: "Anhang öffnen",
+        delete: "Event löschen",
       },
     },
   };
@@ -219,18 +337,43 @@ export default function TheHeritageDriversLandingPage() {
     return sessionEmail.split("@")[0].replace(/[._-]/g, " ");
   }, [profile, session, email, lang]);
 
+  const resetStatus = () => setStatus({ type: "", message: "" });
+
+  const clearAppState = () => {
+    setSession(null);
+    setProfile(null);
+    setEvents([]);
+    setParticipants([]);
+    setParticipantsView(null);
+    setEditingEventId(null);
+    setEventForm(emptyEventForm);
+    setEventImageFile(null);
+    setEventAttachmentFile(null);
+    setAccountPassword("");
+    setAccountPasswordConfirm("");
+  };
+
+  const syncAccountFields = (nextProfile, nextSession) => {
+    setAccountName(nextProfile?.full_name || "");
+    setAccountEmail(nextSession?.user?.email || "");
+  };
+
   const loadProfile = async (userId) => {
-    if (!supabase || !userId) return;
+    if (!supabase || !userId) return null;
 
     const { data, error } = await supabase
       .from("member_profiles")
-      .select("id, full_name, role")
+      .select("id, full_name, role, approved")
       .eq("id", userId)
       .single();
 
-    if (!error && data) {
-      setProfile(data);
+    if (error) {
+      return null;
     }
+
+    setProfile(data);
+    syncAccountFields(data, session);
+    return data;
   };
 
   const loadEvents = async () => {
@@ -241,7 +384,6 @@ export default function TheHeritageDriversLandingPage() {
     const { data, error } = await supabase
       .from("events")
       .select("*")
-      .eq("is_active", true)
       .order("event_date", { ascending: true });
 
     if (!error && data) {
@@ -263,6 +405,15 @@ export default function TheHeritageDriversLandingPage() {
     }
   };
 
+  const loadAppData = async (currentSession) => {
+    if (!currentSession?.user) return;
+
+    const loadedProfile = await loadProfile(currentSession.user.id);
+    syncAccountFields(loadedProfile, currentSession);
+    await loadEvents();
+    await loadParticipants();
+  };
+
   useEffect(() => {
     if (!supabase) {
       setInitializing(false);
@@ -281,12 +432,14 @@ export default function TheHeritageDriversLandingPage() {
       setSession(currentSession);
 
       if (currentSession?.user) {
-        await loadProfile(currentSession.user.id);
-        await loadEvents();
-        await loadParticipants();
+        await loadAppData(currentSession);
+      } else {
+        clearAppState();
       }
 
-      setInitializing(false);
+      if (mounted) {
+        setInitializing(false);
+      }
     };
 
     init();
@@ -299,14 +452,9 @@ export default function TheHeritageDriversLandingPage() {
       setSession(currentSession);
 
       if (currentSession?.user) {
-        await loadProfile(currentSession.user.id);
-        await loadEvents();
-        await loadParticipants();
+        await loadAppData(currentSession);
       } else {
-        setProfile(null);
-        setEvents([]);
-        setParticipants([]);
-        setParticipantsView(null);
+        clearAppState();
       }
     });
 
@@ -316,16 +464,17 @@ export default function TheHeritageDriversLandingPage() {
     };
   }, []);
 
-  const handleUploadEventImage = async () => {
-    if (!supabase || !eventImageFile || !session?.user) return "";
+  const uploadFileToBucket = async ({ bucket, folder, file, makePublic = true }) => {
+    if (!supabase || !file || !session?.user) return { url: "", name: "" };
 
-    const fileExt = eventImageFile.name.split(".").pop();
-    const fileName = `${session.user.id}-${Date.now()}.${fileExt}`;
-    const filePath = `events/${fileName}`;
+    const fileExt = file.name.split(".").pop();
+    const safeExt = fileExt ? `.${fileExt}` : "";
+    const fileName = `${session.user.id}-${Date.now()}${safeExt}`;
+    const filePath = `${folder}/${fileName}`;
 
     const { error: uploadError } = await supabase.storage
-      .from("event-images")
-      .upload(filePath, eventImageFile, {
+      .from(bucket)
+      .upload(filePath, file, {
         upsert: false,
       });
 
@@ -333,14 +482,37 @@ export default function TheHeritageDriversLandingPage() {
       throw uploadError;
     }
 
-    const { data } = supabase.storage
-      .from("event-images")
-      .getPublicUrl(filePath);
+    if (makePublic) {
+      const { data } = supabase.storage.from(bucket).getPublicUrl(filePath);
+      return {
+        url: data?.publicUrl || "",
+        name: file.name,
+      };
+    }
 
-    return data?.publicUrl || "";
+    return {
+      url: filePath,
+      name: file.name,
+    };
   };
 
-  const resetStatus = () => setStatus({ type: "", message: "" });
+  const handleUploadEventImage = async () => {
+    return uploadFileToBucket({
+      bucket: "event-images",
+      folder: "events",
+      file: eventImageFile,
+      makePublic: true,
+    });
+  };
+
+  const handleUploadEventAttachment = async () => {
+    return uploadFileToBucket({
+      bucket: "event-files",
+      folder: "attachments",
+      file: eventAttachmentFile,
+      makePublic: true,
+    });
+  };
 
   const handleLogin = async () => {
     resetStatus();
@@ -351,10 +523,12 @@ export default function TheHeritageDriversLandingPage() {
     }
 
     setLoading(true);
+
     const { error } = await supabase.auth.signInWithPassword({
-      email,
+      email: email.trim(),
       password,
     });
+
     setLoading(false);
 
     if (error) {
@@ -381,10 +555,10 @@ export default function TheHeritageDriversLandingPage() {
     setLoading(true);
 
     const { data, error } = await supabase.auth.signUp({
-      email,
+      email: email.trim(),
       password,
       options: {
-        data: { full_name: fullName },
+        data: { full_name: fullName.trim() },
       },
     });
 
@@ -400,8 +574,9 @@ export default function TheHeritageDriversLandingPage() {
     if (data.user?.id) {
       await supabase.from("member_profiles").upsert({
         id: data.user.id,
-        full_name: fullName,
+        full_name: fullName.trim(),
         role: "member",
+        approved: true,
       });
     }
 
@@ -409,6 +584,121 @@ export default function TheHeritageDriversLandingPage() {
     setStatus({ type: "success", message: content.messages.signupSuccess });
     setAuthMode("login");
     setPassword("");
+  };
+
+  const handleLogout = async () => {
+    resetStatus();
+
+    if (!supabase) {
+      clearAppState();
+      return;
+    }
+
+    const { error } = await supabase.auth.signOut();
+
+    if (error) {
+      setStatus({
+        type: "error",
+        message: error.message || content.messages.genericError,
+      });
+      return;
+    }
+
+    clearAppState();
+    setPassword("");
+    setStatus({ type: "success", message: content.messages.logoutSuccess });
+  };
+
+  const handleUpdateProfileName = async () => {
+    resetStatus();
+
+    if (!supabase || !session?.user) return;
+
+    setAccountLoading(true);
+
+    const { error } = await supabase
+      .from("member_profiles")
+      .update({ full_name: accountName.trim() })
+      .eq("id", session.user.id);
+
+    setAccountLoading(false);
+
+    if (error) {
+      setStatus({ type: "error", message: error.message });
+      return;
+    }
+
+    await loadProfile(session.user.id);
+    setStatus({
+      type: "success",
+      message: content.messages.profileUpdateSuccess,
+    });
+  };
+
+  const handleUpdateEmail = async () => {
+    resetStatus();
+
+    if (!supabase || !session?.user) return;
+
+    setAccountLoading(true);
+
+    const { error } = await supabase.auth.updateUser({
+      email: accountEmail.trim(),
+    });
+
+    setAccountLoading(false);
+
+    if (error) {
+      setStatus({ type: "error", message: error.message });
+      return;
+    }
+
+    setStatus({
+      type: "success",
+      message: content.messages.emailUpdateSuccess,
+    });
+  };
+
+  const handleUpdatePassword = async () => {
+    resetStatus();
+
+    if (!supabase || !session?.user) return;
+
+    if (accountPassword !== accountPasswordConfirm) {
+      setStatus({
+        type: "error",
+        message: content.messages.passwordMismatch,
+      });
+      return;
+    }
+
+    if (accountPassword.length < 8) {
+      setStatus({
+        type: "error",
+        message: content.messages.passwordTooShort,
+      });
+      return;
+    }
+
+    setAccountLoading(true);
+
+    const { error } = await supabase.auth.updateUser({
+      password: accountPassword,
+    });
+
+    setAccountLoading(false);
+
+    if (error) {
+      setStatus({ type: "error", message: error.message });
+      return;
+    }
+
+    setAccountPassword("");
+    setAccountPasswordConfirm("");
+    setStatus({
+      type: "success",
+      message: content.messages.passwordUpdateSuccess,
+    });
   };
 
   const handleCreateEvent = async () => {
@@ -422,76 +712,117 @@ export default function TheHeritageDriversLandingPage() {
       return;
     }
 
+    setEventSaving(true);
+
     try {
-      let uploadedImageUrl = eventForm.image_url;
+      let uploadedImageUrl = eventForm.image_url || null;
+      let uploadedAttachmentUrl = eventForm.attachment_url || null;
+      let uploadedAttachmentName = eventForm.attachment_name || null;
 
       if (eventImageFile) {
-        uploadedImageUrl = await handleUploadEventImage();
+        const imageUpload = await handleUploadEventImage();
+        uploadedImageUrl = imageUpload.url || null;
+      }
+
+      if (eventAttachmentFile) {
+        const attachmentUpload = await handleUploadEventAttachment();
+        uploadedAttachmentUrl = attachmentUpload.url || null;
+        uploadedAttachmentName = attachmentUpload.name || null;
       }
 
       const payload = {
-        title: eventForm.title,
-        short_description: eventForm.short_description,
-        long_description: eventForm.long_description,
-        event_date: eventForm.event_date,
-        location: eventForm.location,
+        title: eventForm.title.trim(),
+        short_description: eventForm.short_description.trim() || null,
+        long_description: eventForm.long_description.trim() || null,
+        event_date: eventForm.event_date || null,
+        location: eventForm.location.trim() || null,
         max_participants: eventForm.max_participants
           ? Number(eventForm.max_participants)
           : null,
-        image_url: uploadedImageUrl || null,
+        image_url: uploadedImageUrl,
+        attachment_name: uploadedAttachmentName,
+        attachment_url: uploadedAttachmentUrl,
         created_by: session.user.id,
         is_active: true,
       };
 
-      let error = null;
+      let response;
 
       if (editingEventId) {
-        const response = await supabase
+        response = await supabase
           .from("events")
           .update(payload)
           .eq("id", editingEventId);
-
-        error = response.error;
       } else {
-        const response = await supabase.from("events").insert(payload);
-        error = response.error;
+        response = await supabase.from("events").insert(payload);
       }
 
-      if (error) {
+      if (response.error) {
         setStatus({
           type: "error",
-          message: error.message || content.messages.eventCreateError,
+          message: response.error.message || content.messages.eventCreateError,
         });
+        setEventSaving(false);
         return;
       }
 
       setStatus({
         type: "success",
         message: editingEventId
-          ? "Event updated successfully."
+          ? content.messages.eventUpdateSuccess
           : content.messages.eventCreateSuccess,
       });
 
-      setEventForm({
-        title: "",
-        short_description: "",
-        long_description: "",
-        event_date: "",
-        location: "",
-        max_participants: "",
-        image_url: "",
-      });
-
+      setEventForm(emptyEventForm);
       setEventImageFile(null);
+      setEventAttachmentFile(null);
       setEditingEventId(null);
 
       await loadEvents();
     } catch (err) {
       setStatus({
         type: "error",
-        message: err.message || content.messages.eventCreateError,
+        message: err?.message || content.messages.uploadError,
       });
     }
+
+    setEventSaving(false);
+  };
+
+  const handleDeleteEvent = async (eventId) => {
+    resetStatus();
+
+    if (!supabase || !session?.user || !isAdmin) {
+      setStatus({
+        type: "error",
+        message: content.messages.notAuthorized,
+      });
+      return;
+    }
+
+    const confirmed = window.confirm(content.messages.eventDeleteConfirm);
+    if (!confirmed) return;
+
+    const { error } = await supabase.from("events").delete().eq("id", eventId);
+
+    if (error) {
+      setStatus({ type: "error", message: error.message });
+      return;
+    }
+
+    if (editingEventId === eventId) {
+      setEditingEventId(null);
+      setEventForm(emptyEventForm);
+      setEventImageFile(null);
+      setEventAttachmentFile(null);
+    }
+
+    setParticipantsView(null);
+    setStatus({
+      type: "success",
+      message: content.messages.eventDeleteSuccess,
+    });
+    await loadEvents();
   };
 
   const handleEditEvent = (event) => {
@@ -504,8 +835,18 @@ export default function TheHeritageDriversLandingPage() {
       location: event.location || "",
       max_participants: event.max_participants?.toString() || "",
       image_url: event.image_url || "",
+      attachment_name: event.attachment_name || "",
+      attachment_url: event.attachment_url || "",
     });
     setEventImageFile(null);
+    setEventAttachmentFile(null);
+  };
+
+  const resetEventEditor = () => {
+    setEditingEventId(null);
+    setEventForm(emptyEventForm);
+    setEventImageFile(null);
+    setEventAttachmentFile(null);
   };
 
   const isRegisteredForEvent = (eventId) => {
@@ -517,18 +858,26 @@ export default function TheHeritageDriversLandingPage() {
   };
 
   const handleToggleParticipation = async (eventId, checked) => {
+    resetStatus();
+
     if (!supabase || !session?.user) return;
 
     if (checked) {
-      const { error } = await supabase.from("event_participants").insert({
-        event_id: eventId,
-        user_id: session.user.id,
-        status: "registered",
-      });
+      const alreadyRegistered = participants.some(
+        (p) => p.event_id === eventId && p.user_id === session.user.id
+      );
 
-      if (error) {
-        setStatus({ type: "error", message: error.message });
-        return;
+      if (!alreadyRegistered) {
+        const { error } = await supabase.from("event_participants").insert({
+          event_id: eventId,
+          user_id: session.user.id,
+          status: "registered",
+        });
+
+        if (error) {
+          setStatus({ type: "error", message: error.message });
+          return;
+        }
       }
     } else {
       const { error } = await supabase
@@ -544,6 +893,10 @@ export default function TheHeritageDriversLandingPage() {
     }
 
     await loadParticipants();
+    setStatus({
+      type: "success",
+      message: content.messages.participantUpdateSuccess,
+    });
   };
 
   const handleViewParticipants = async (eventId) => {
@@ -569,10 +922,15 @@ export default function TheHeritageDriversLandingPage() {
       return;
     }
 
-    const { data: profilesData } = await supabase
+    const { data: profilesData, error: profilesError } = await supabase
       .from("member_profiles")
       .select("id, full_name")
       .in("id", userIds);
+
+    if (profilesError) {
+      setStatus({ type: "error", message: profilesError.message });
+      return;
+    }
 
     const nameMap = new Map(
       (profilesData || []).map((row) => [row.id, row.full_name])
@@ -587,21 +945,6 @@ export default function TheHeritageDriversLandingPage() {
       eventId,
       rows,
     });
-  };
-
-  const handleLogout = async () => {
-    resetStatus();
-
-    if (!supabase) {
-      setSession(null);
-      setProfile(null);
-      return;
-    }
-
-    await supabase.auth.signOut();
-    setProfile(null);
-    setPassword("");
-    setStatus({ type: "success", message: content.messages.logoutSuccess });
   };
 
   const StatusBanner = () =>
@@ -649,6 +992,7 @@ export default function TheHeritageDriversLandingPage() {
               {!isLoggedIn ? (
                 <button
                   onClick={() => {
+                    resetStatus();
                     setAuthMode("login");
                     setShowLogin(true);
                   }}
@@ -728,6 +1072,7 @@ export default function TheHeritageDriversLandingPage() {
                 </button>
                 <button
                   onClick={() => {
+                    resetStatus();
                     setAuthMode("login");
                     setShowLogin(true);
                   }}
@@ -823,6 +1168,7 @@ export default function TheHeritageDriversLandingPage() {
 
               <button
                 onClick={() => {
+                  resetStatus();
                   setAuthMode("login");
                   setShowLogin(true);
                 }}
@@ -872,12 +1218,12 @@ export default function TheHeritageDriversLandingPage() {
                 </p>
                 <h2 className="mt-4 text-3xl text-[#f2e6cf]">
                   {isLoggedIn
-                    ? "Upcoming Events & Attendance"
+                    ? content.event.sectionTitle
                     : content.members.title}
                 </h2>
                 <p className="mt-4 max-w-2xl text-[#b8ad96]">
                   {isLoggedIn
-                    ? "Manage upcoming drives, review attendance and maintain event details for the society."
+                    ? content.event.sectionText
                     : content.members.subtitle}
                 </p>
               </div>
@@ -886,6 +1232,7 @@ export default function TheHeritageDriversLandingPage() {
                 {!isLoggedIn ? (
                   <button
                     onClick={() => {
+                      resetStatus();
                       setAuthMode("login");
                       setShowLogin(true);
                     }}
@@ -949,10 +1296,12 @@ export default function TheHeritageDriversLandingPage() {
               <div className="mt-8 grid gap-6">
                 <div className="rounded-[1.75rem] border border-[#2d2416] bg-[#131313] p-8">
                   {eventsLoading ? (
-                    <p className="text-sm text-[#b8ad96]">Loading events...</p>
+                    <p className="text-sm text-[#b8ad96]">
+                      {content.event.loading}
+                    </p>
                   ) : events.length === 0 ? (
                     <p className="text-sm text-[#b8ad96]">
-                      No events available yet.
+                      {content.event.empty}
                     </p>
                   ) : (
                     <div className="grid gap-6 lg:grid-cols-2">
@@ -970,7 +1319,7 @@ export default function TheHeritageDriversLandingPage() {
                           )}
 
                           <p className="text-xs uppercase tracking-[0.3em] text-[#b6924f]">
-                            Upcoming Event
+                            {content.event.upcoming}
                           </p>
 
                           <h4 className="mt-3 text-xl text-[#f2e6cf]">
@@ -996,8 +1345,24 @@ export default function TheHeritageDriversLandingPage() {
 
                           {event.max_participants && (
                             <p className="mt-4 text-sm text-[#b8ad96]">
-                              Max participants: {event.max_participants}
+                              {content.event.maxParticipantsLabel}:{" "}
+                              {event.max_participants}
                             </p>
+                          )}
+
+                          {event.attachment_url && (
+                            <div className="mt-4">
+                              <a
+                                href={event.attachment_url}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="inline-flex items-center gap-2 text-sm text-[#d7bf8a] underline underline-offset-4 hover:text-white"
+                              >
+                                <Paperclip className="h-4 w-4" />
+                                {event.attachment_name ||
+                                  content.event.openAttachment}
+                              </a>
+                            </div>
                           )}
 
                           <div className="mt-6 flex items-center gap-3">
@@ -1017,7 +1382,7 @@ export default function TheHeritageDriversLandingPage() {
                               htmlFor={`join-${event.id}`}
                               className="text-sm text-[#e8dcc0]"
                             >
-                              Attend this event
+                              {content.event.attend}
                             </label>
                           </div>
 
@@ -1027,14 +1392,22 @@ export default function TheHeritageDriversLandingPage() {
                                 onClick={() => handleEditEvent(event)}
                                 className="rounded-full border border-[#b6924f] px-4 py-2 text-xs uppercase tracking-[0.18em] text-[#f2e6cf] transition hover:bg-[#b6924f] hover:text-black"
                               >
-                                Modify Event
+                                {content.event.modify}
                               </button>
 
                               <button
                                 onClick={() => handleViewParticipants(event.id)}
                                 className="rounded-full border border-[#3b311d] px-4 py-2 text-xs uppercase tracking-[0.18em] text-[#f2e6cf] transition hover:border-[#b6924f]"
                               >
-                                Participants
+                                {content.event.participants}
+                              </button>
+
+                              <button
+                                onClick={() => handleDeleteEvent(event.id)}
+                                className="inline-flex items-center gap-2 rounded-full border border-[#6a2f24] px-4 py-2 text-xs uppercase tracking-[0.18em] text-[#f2e6cf] transition hover:border-[#b74b39] hover:text-white"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                                {content.event.delete}
                               </button>
                             </div>
                           )}
@@ -1046,22 +1419,10 @@ export default function TheHeritageDriversLandingPage() {
                   {isAdmin && (
                     <div className="mt-8 flex flex-wrap gap-4">
                       <button
-                        onClick={() => {
-                          setEditingEventId(null);
-                          setEventForm({
-                            title: "",
-                            short_description: "",
-                            long_description: "",
-                            event_date: "",
-                            location: "",
-                            max_participants: "",
-                            image_url: "",
-                          });
-                          setEventImageFile(null);
-                        }}
+                        onClick={resetEventEditor}
                         className="rounded-full bg-[#b6924f] px-5 py-3 text-sm uppercase tracking-[0.22em] text-black transition hover:bg-[#c6a45d]"
                       >
-                        Create Event
+                        {content.event.create}
                       </button>
                     </div>
                   )}
@@ -1069,7 +1430,9 @@ export default function TheHeritageDriversLandingPage() {
                   {isAdmin && (
                     <div className="mt-8 rounded-[1.5rem] border border-[#2d2416] bg-[#0f0f0f] p-6">
                       <p className="text-xs uppercase tracking-[0.3em] text-[#b6924f]">
-                        {editingEventId ? "Modify Event" : "Create Event"}
+                        {editingEventId
+                          ? content.event.modify
+                          : content.event.create}
                       </p>
 
                       <div className="mt-6 grid gap-4 lg:grid-cols-2">
@@ -1081,7 +1444,7 @@ export default function TheHeritageDriversLandingPage() {
                               title: e.target.value,
                             })
                           }
-                          placeholder="Event title"
+                          placeholder={content.event.title}
                           className="w-full rounded-2xl border border-[#342a1a] bg-black/60 p-4 text-[#efe2c5] outline-none placeholder:text-[#796c56]"
                         />
 
@@ -1105,7 +1468,7 @@ export default function TheHeritageDriversLandingPage() {
                               location: e.target.value,
                             })
                           }
-                          placeholder="Location"
+                          placeholder={content.event.location}
                           className="w-full rounded-2xl border border-[#342a1a] bg-black/60 p-4 text-[#efe2c5] outline-none placeholder:text-[#796c56]"
                         />
 
@@ -1118,7 +1481,7 @@ export default function TheHeritageDriversLandingPage() {
                             })
                           }
                           type="number"
-                          placeholder="Max participants"
+                          placeholder={content.event.maxParticipants}
                           className="w-full rounded-2xl border border-[#342a1a] bg-black/60 p-4 text-[#efe2c5] outline-none placeholder:text-[#796c56]"
                         />
 
@@ -1130,7 +1493,7 @@ export default function TheHeritageDriversLandingPage() {
                               short_description: e.target.value,
                             })
                           }
-                          placeholder="Short description"
+                          placeholder={content.event.shortDescription}
                           className="lg:col-span-2 w-full rounded-2xl border border-[#342a1a] bg-black/60 p-4 text-[#efe2c5] outline-none placeholder:text-[#796c56]"
                         />
 
@@ -1142,46 +1505,72 @@ export default function TheHeritageDriversLandingPage() {
                               long_description: e.target.value,
                             })
                           }
-                          placeholder="Detailed description"
+                          placeholder={content.event.longDescription}
                           className="lg:col-span-2 w-full rounded-2xl border border-[#342a1a] bg-black/60 p-4 text-[#efe2c5] outline-none placeholder:text-[#796c56]"
                         />
 
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={(e) =>
-                            setEventImageFile(e.target.files?.[0] || null)
-                          }
-                          className="lg:col-span-2 w-full rounded-2xl border border-[#342a1a] bg-black/60 p-4 text-[#efe2c5] outline-none"
-                        />
+                        <div className="lg:col-span-2 rounded-2xl border border-[#342a1a] bg-black/60 p-4">
+                          <label className="mb-3 flex items-center gap-2 text-sm text-[#efe2c5]">
+                            <ImageIcon className="h-4 w-4 text-[#b6924f]" />
+                            {content.event.image}
+                          </label>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={(e) =>
+                              setEventImageFile(e.target.files?.[0] || null)
+                            }
+                            className="w-full text-[#efe2c5] outline-none"
+                          />
+                          {eventForm.image_url && !eventImageFile && (
+                            <p className="mt-2 text-xs text-[#9e8f74]">
+                              Existing image kept until replaced.
+                            </p>
+                          )}
+                        </div>
+
+                        <div className="lg:col-span-2 rounded-2xl border border-[#342a1a] bg-black/60 p-4">
+                          <label className="mb-3 flex items-center gap-2 text-sm text-[#efe2c5]">
+                            <Paperclip className="h-4 w-4 text-[#b6924f]" />
+                            {content.event.attachment}
+                          </label>
+                          <input
+                            type="file"
+                            onChange={(e) =>
+                              setEventAttachmentFile(
+                                e.target.files?.[0] || null
+                              )
+                            }
+                            className="w-full text-[#efe2c5] outline-none"
+                          />
+                          {eventForm.attachment_url && !eventAttachmentFile && (
+                            <p className="mt-2 text-xs text-[#9e8f74]">
+                              Existing attachment kept until replaced.
+                            </p>
+                          )}
+                        </div>
                       </div>
 
                       <div className="mt-6 flex flex-wrap gap-4">
                         <button
                           onClick={handleCreateEvent}
-                          className="rounded-full bg-[#b6924f] px-5 py-3 text-sm uppercase tracking-[0.22em] text-black transition hover:bg-[#c6a45d]"
+                          disabled={eventSaving}
+                          className="inline-flex items-center gap-2 rounded-full bg-[#b6924f] px-5 py-3 text-sm uppercase tracking-[0.22em] text-black transition hover:bg-[#c6a45d] disabled:cursor-not-allowed disabled:opacity-70"
                         >
-                          {editingEventId ? "Save Changes" : "Create Event"}
+                          {eventSaving && (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          )}
+                          {editingEventId
+                            ? content.event.saveChanges
+                            : content.event.create}
                         </button>
 
                         {editingEventId && (
                           <button
-                            onClick={() => {
-                              setEditingEventId(null);
-                              setEventForm({
-                                title: "",
-                                short_description: "",
-                                long_description: "",
-                                event_date: "",
-                                location: "",
-                                max_participants: "",
-                                image_url: "",
-                              });
-                              setEventImageFile(null);
-                            }}
+                            onClick={resetEventEditor}
                             className="rounded-full border border-[#b6924f] px-5 py-3 text-sm uppercase tracking-[0.22em] text-[#f2e6cf] transition hover:bg-[#b6924f] hover:text-black"
                           >
-                            Cancel Edit
+                            {content.event.cancelEdit}
                           </button>
                         )}
                       </div>
@@ -1192,20 +1581,20 @@ export default function TheHeritageDriversLandingPage() {
                     <div className="mt-8 rounded-[1.5rem] border border-[#2d2416] bg-[#0f0f0f] p-6">
                       <div className="flex items-center justify-between gap-4">
                         <p className="text-xs uppercase tracking-[0.3em] text-[#b6924f]">
-                          Participants
+                          {content.event.participants}
                         </p>
                         <button
                           onClick={() => setParticipantsView(null)}
                           className="rounded-full border border-[#3b311d] px-4 py-2 text-xs uppercase tracking-[0.18em] text-[#f2e6cf] transition hover:border-[#b6924f]"
                         >
-                          Close
+                          {content.event.close}
                         </button>
                       </div>
 
                       <div className="mt-6 space-y-3">
                         {participantsView.rows.length === 0 ? (
                           <p className="text-sm text-[#b8ad96]">
-                            No participants registered yet.
+                            {content.event.noParticipants}
                           </p>
                         ) : (
                           participantsView.rows.map((row) => (
@@ -1220,6 +1609,98 @@ export default function TheHeritageDriversLandingPage() {
                       </div>
                     </div>
                   )}
+                </div>
+
+                <div className="rounded-[1.75rem] border border-[#2d2416] bg-[#131313] p-8">
+                  <div className="flex items-center gap-3">
+                    <Save className="h-5 w-5 text-[#b6924f]" />
+                    <h3 className="text-xl text-[#f2e6cf]">
+                      {content.account.title}
+                    </h3>
+                  </div>
+
+                  <p className="mt-3 text-sm leading-6 text-[#a99c83]">
+                    {content.account.subtitle}
+                  </p>
+
+                  <div className="mt-6 grid gap-4 lg:grid-cols-2">
+                    <div className="rounded-[1.25rem] border border-[#2d2416] bg-[#0f0f0f] p-5">
+                      <label className="mb-2 block text-sm text-[#d9ccb1]">
+                        {content.account.fullName}
+                      </label>
+                      <input
+                        value={accountName}
+                        onChange={(e) => setAccountName(e.target.value)}
+                        className="w-full rounded-2xl border border-[#342a1a] bg-black/60 p-4 text-[#efe2c5] outline-none"
+                      />
+                      <button
+                        onClick={handleUpdateProfileName}
+                        disabled={accountLoading}
+                        className="mt-4 rounded-full border border-[#b6924f] px-4 py-2 text-xs uppercase tracking-[0.18em] text-[#f2e6cf] transition hover:bg-[#b6924f] hover:text-black disabled:cursor-not-allowed disabled:opacity-70"
+                      >
+                        {content.account.saveName}
+                      </button>
+                    </div>
+
+                    <div className="rounded-[1.25rem] border border-[#2d2416] bg-[#0f0f0f] p-5">
+                      <label className="mb-2 block text-sm text-[#d9ccb1]">
+                        {content.account.email}
+                      </label>
+                      <input
+                        type="email"
+                        value={accountEmail}
+                        onChange={(e) => setAccountEmail(e.target.value)}
+                        className="w-full rounded-2xl border border-[#342a1a] bg-black/60 p-4 text-[#efe2c5] outline-none"
+                      />
+                      <button
+                        onClick={handleUpdateEmail}
+                        disabled={accountLoading}
+                        className="mt-4 rounded-full border border-[#b6924f] px-4 py-2 text-xs uppercase tracking-[0.18em] text-[#f2e6cf] transition hover:bg-[#b6924f] hover:text-black disabled:cursor-not-allowed disabled:opacity-70"
+                      >
+                        {content.account.saveEmail}
+                      </button>
+                    </div>
+
+                    <div className="rounded-[1.25rem] border border-[#2d2416] bg-[#0f0f0f] p-5 lg:col-span-2">
+                      <div className="grid gap-4 lg:grid-cols-2">
+                        <div>
+                          <label className="mb-2 block text-sm text-[#d9ccb1]">
+                            {content.account.newPassword}
+                          </label>
+                          <input
+                            type="password"
+                            value={accountPassword}
+                            onChange={(e) =>
+                              setAccountPassword(e.target.value)
+                            }
+                            className="w-full rounded-2xl border border-[#342a1a] bg-black/60 p-4 text-[#efe2c5] outline-none"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="mb-2 block text-sm text-[#d9ccb1]">
+                            {content.account.confirmPassword}
+                          </label>
+                          <input
+                            type="password"
+                            value={accountPasswordConfirm}
+                            onChange={(e) =>
+                              setAccountPasswordConfirm(e.target.value)
+                            }
+                            className="w-full rounded-2xl border border-[#342a1a] bg-black/60 p-4 text-[#efe2c5] outline-none"
+                          />
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={handleUpdatePassword}
+                        disabled={accountLoading}
+                        className="mt-4 rounded-full border border-[#b6924f] px-4 py-2 text-xs uppercase tracking-[0.18em] text-[#f2e6cf] transition hover:bg-[#b6924f] hover:text-black disabled:cursor-not-allowed disabled:opacity-70"
+                      >
+                        {content.account.savePassword}
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </div>
             )}
@@ -1266,6 +1747,7 @@ export default function TheHeritageDriversLandingPage() {
                 <div className="relative">
                   <Mail className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8c7e65]" />
                   <input
+                    type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder={content.login.email}
