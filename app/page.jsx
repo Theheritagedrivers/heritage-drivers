@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import {
   Calendar,
@@ -18,6 +19,7 @@ import {
   Save,
 } from "lucide-react";
 import { createClient } from "@supabase/supabase-js";
+
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
@@ -985,9 +987,15 @@ export default function TheHeritageDriversLandingPage() {
 
           <div className="flex items-center gap-4">
             <nav className="hidden items-center gap-8 text-sm md:flex">
-              {content.nav.map((n) => (
-                <span key={n}>{n}</span>
-              ))}
+              <Link href="/society" className="transition hover:text-white">
+  Society
+</Link>
+<Link href="/philosophy" className="transition hover:text-white">
+  Philosophy
+</Link>
+<Link href="/membership" className="transition hover:text-white">
+  Membership
+</Link>
 
               {!isLoggedIn ? (
                 <button
@@ -1064,12 +1072,19 @@ export default function TheHeritageDriversLandingPage() {
               </p>
 
               <div className="mt-10 flex flex-wrap gap-4">
-                <button className="bg-[#b6924f] px-6 py-3 text-black">
-                  {content.cta1}
-                </button>
-                <button className="border border-[#b6924f] px-6 py-3">
-                  {content.cta2}
-                </button>
+               <Link
+  href="/membership"
+  className="bg-[#b6924f] px-6 py-3 text-black"
+>
+  {content.cta1}
+</Link>
+
+<Link
+  href="/society"
+  className="border border-[#b6924f] px-6 py-3"
+>
+  {content.cta2}
+</Link>
                 <button
                   onClick={() => {
                     resetStatus();
