@@ -20,7 +20,6 @@ import {
 } from "lucide-react";
 import { createClient } from "@supabase/supabase-js";
 
-
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
 
@@ -78,6 +77,13 @@ export default function TheHeritageDriversLandingPage() {
   const [accountPassword, setAccountPassword] = useState("");
   const [accountPasswordConfirm, setAccountPasswordConfirm] = useState("");
   const [accountLoading, setAccountLoading] = useState(false);
+
+  const [enquiryForm, setEnquiryForm] = useState({
+    full_name: "",
+    email: "",
+    interest_note: "",
+  });
+  const [enquiryLoading, setEnquiryLoading] = useState(false);
 
   const t = {
     en: {
@@ -161,6 +167,10 @@ export default function TheHeritageDriversLandingPage() {
         passwordTooShort: "Please use a password with at least 8 characters.",
         participantUpdateSuccess: "Attendance updated successfully.",
         uploadError: "File upload failed.",
+        enquirySuccess: "Your enquiry has been submitted successfully.",
+        enquiryError: "Your enquiry could not be submitted.",
+        enquiryMissingFields:
+          "Please provide at least your name and email address.",
       },
       account: {
         title: "Account Settings",
@@ -285,6 +295,10 @@ export default function TheHeritageDriversLandingPage() {
           "Bitte verwenden Sie ein Passwort mit mindestens 8 Zeichen.",
         participantUpdateSuccess: "Teilnahme erfolgreich aktualisiert.",
         uploadError: "Datei-Upload fehlgeschlagen.",
+        enquirySuccess: "Ihre Anfrage wurde erfolgreich übermittelt.",
+        enquiryError: "Ihre Anfrage konnte nicht übermittelt werden.",
+        enquiryMissingFields:
+          "Bitte geben Sie mindestens Ihren Namen und Ihre E-Mail-Adresse an.",
       },
       account: {
         title: "Kontoeinstellungen",
@@ -369,9 +383,7 @@ export default function TheHeritageDriversLandingPage() {
       .eq("id", userId)
       .single();
 
-    if (error) {
-      return null;
-    }
+    if (error) return null;
 
     setProfile(data);
     syncAccountFields(data, session);
@@ -466,7 +478,12 @@ export default function TheHeritageDriversLandingPage() {
     };
   }, []);
 
-  const uploadFileToBucket = async ({ bucket, folder, file, makePublic = true }) => {
+  const uploadFileToBucket = async ({
+    bucket,
+    folder,
+    file,
+    makePublic = true,
+  }) => {
     if (!supabase || !file || !session?.user) return { url: "", name: "" };
 
     const fileExt = file.name.split(".").pop();
@@ -513,6 +530,54 @@ export default function TheHeritageDriversLandingPage() {
       folder: "attachments",
       file: eventAttachmentFile,
       makePublic: true,
+    });
+  };
+
+  const handleSubmitEnquiry = async () => {
+    resetStatus();
+
+    if (!supabase) {
+      setStatus({ type: "error", message: content.setup.text });
+      return;
+    }
+
+    if (!enquiryForm.full_name.trim() || !enquiryForm.email.trim()) {
+      setStatus({
+        type: "error",
+        message: content.messages.enquiryMissingFields,
+      });
+      return;
+    }
+
+    setEnquiryLoading(true);
+
+    const { error } = await supabase.from("membership_enquiries").insert({
+      full_name: enquiryForm.full_name.trim(),
+      email: enquiryForm.email.trim(),
+      interest_note: enquiryForm.interest_note.trim() || null,
+      language: lang,
+      status: "new",
+    });
+
+    setEnquiryLoading(false);
+
+    if (error) {
+      setStatus({
+        type: "error",
+        message: error.message || content.messages.enquiryError,
+      });
+      return;
+    }
+
+    setEnquiryForm({
+      full_name: "",
+      email: "",
+      interest_note: "",
+    });
+
+    setStatus({
+      type: "success",
+      message: content.messages.enquirySuccess,
     });
   };
 
@@ -988,14 +1053,14 @@ export default function TheHeritageDriversLandingPage() {
           <div className="flex items-center gap-4">
             <nav className="hidden items-center gap-8 text-sm md:flex">
               <Link href="/society" className="transition hover:text-white">
-  Society
-</Link>
-<Link href="/philosophy" className="transition hover:text-white">
-  Philosophy
-</Link>
-<Link href="/membership" className="transition hover:text-white">
-  Membership
-</Link>
+                Society
+              </Link>
+              <Link href="/philosophy" className="transition hover:text-white">
+                Philosophy
+              </Link>
+              <Link href="/membership" className="transition hover:text-white">
+                Membership
+              </Link>
 
               {!isLoggedIn ? (
                 <button
@@ -1072,19 +1137,20 @@ export default function TheHeritageDriversLandingPage() {
               </p>
 
               <div className="mt-10 flex flex-wrap gap-4">
-               <Link
-  href="/membership"
-  className="bg-[#b6924f] px-6 py-3 text-black"
->
-  {content.cta1}
-</Link>
+                <Link
+                  href="/membership"
+                  className="bg-[#b6924f] px-6 py-3 text-black"
+                >
+                  {content.cta1}
+                </Link>
 
-<Link
-  href="/society"
-  className="border border-[#b6924f] px-6 py-3"
->
-  {content.cta2}
-</Link>
+                <Link
+                  href="/society"
+                  className="border border-[#b6924f] px-6 py-3"
+                >
+                  {content.cta2}
+                </Link>
+
                 <button
                   onClick={() => {
                     resetStatus();
@@ -1206,18 +1272,48 @@ export default function TheHeritageDriversLandingPage() {
 
             <div className="mt-10 max-w-md space-y-4">
               <input
+                value={enquiryForm.full_name}
+                onChange={(e) =>
+                  setEnquiryForm({
+                    ...enquiryForm,
+                    full_name: e.target.value,
+                  })
+                }
                 placeholder={content.form.name}
                 className="w-full border border-[#342a1a] bg-black p-3 text-[#efe2c5]"
               />
+
               <input
+                type="email"
+                value={enquiryForm.email}
+                onChange={(e) =>
+                  setEnquiryForm({
+                    ...enquiryForm,
+                    email: e.target.value,
+                  })
+                }
                 placeholder={content.form.email}
                 className="w-full border border-[#342a1a] bg-black p-3 text-[#efe2c5]"
               />
+
               <textarea
+                value={enquiryForm.interest_note}
+                onChange={(e) =>
+                  setEnquiryForm({
+                    ...enquiryForm,
+                    interest_note: e.target.value,
+                  })
+                }
                 placeholder={content.form.message}
                 className="w-full border border-[#342a1a] bg-black p-3 text-[#efe2c5]"
               />
-              <button className="w-full bg-[#b6924f] px-6 py-3 text-black">
+
+              <button
+                onClick={handleSubmitEnquiry}
+                disabled={enquiryLoading}
+                className="flex w-full items-center justify-center gap-2 bg-[#b6924f] px-6 py-3 text-black disabled:cursor-not-allowed disabled:opacity-70"
+              >
+                {enquiryLoading && <Loader2 className="h-4 w-4 animate-spin" />}
                 {content.form.submit}
               </button>
             </div>
