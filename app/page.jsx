@@ -17,6 +17,7 @@ import {
   Image as ImageIcon,
   Paperclip,
   Save,
+  Pencil,
 } from "lucide-react";
 import { createClient } from "@supabase/supabase-js";
 
@@ -44,6 +45,445 @@ const emptyEventForm = {
   attachment_url: "",
 };
 
+const fallbackContent = {
+  en: {
+    navSociety: "Society",
+    navPhilosophy: "Philosophy",
+    navMembership: "Membership",
+    heroTag: "A Private Drivers Society",
+    heroTitle: "Heritage motoring,\nquietly understood.",
+    heroText:
+      "The Heritage Drivers is a refined circle for those who appreciate the culture, craftsmanship and enduring presence of distinguished motor cars.",
+    cta1: "Request Access",
+    cta2: "Discover More",
+    tag1: "Motor Cars",
+    tag2: "Culture",
+    tag3: "Craftsmanship",
+    tag4: "Taste",
+    philosophyTitle: "Not every motor car needs explanation.",
+    membershipTitle: "Admission is intended to be considered, not crowded.",
+    membershipText:
+      "Membership enquiries may be submitted discreetly. The society is envisioned as selective, personal and founded on shared standards of taste, conduct and mechanical appreciation.",
+    enquiryName: "Name",
+    enquiryEmail: "Email",
+    enquiryMessage: "A brief note about your interest",
+    enquirySubmit: "Submit Enquiry",
+    loginButton: "Member Login",
+    loginTitle: "Members Access",
+    loginSubtitle: "Reserved for registered members of the society.",
+    loginFullName: "Full name",
+    loginEmail: "Email address",
+    loginPassword: "Password",
+    loginSubmit: "Sign In",
+    signupSubmit: "Create Account",
+    loginClose: "Close",
+    switchToLogin: "Already registered? Sign in",
+    switchToSignup: "New member? Create access",
+    loginForgot: "Password reset can be added via Supabase if desired.",
+    loginNote: "Private access only.",
+    secureAccess: "Protected access",
+    welcome: "Welcome back",
+    membersIntro:
+      "Your account is protected by Supabase authentication. Member data, events and protected content can be maintained securely.",
+    eventCardTitle: "Upcoming Drive",
+    eventCardText: "Season Opening · 19.04.2026 · Private confirmation required.",
+    notesTitle: "Members Notes",
+    notesText:
+      "Discreet updates, club notices and society correspondence.",
+    atelierTitle: "Technical Circle",
+    atelierText:
+      "Selected workshop evenings, heritage discussions and mechanical exchange.",
+    membersPreview: "Preview access",
+    membersAreaTitle: "Private Members Area",
+    membersAreaSubtitle:
+      "A discreet section for members, events and society information.",
+    accountTitle: "Account Settings",
+    accountSubtitle: "Maintain your member details and access credentials.",
+    accountDisplayName: "Display name",
+    accountEmail: "Email address",
+    accountNewPassword: "New password",
+    accountConfirmPassword: "Confirm new password",
+    accountSaveName: "Save Name",
+    accountSaveEmail: "Save Email",
+    accountSavePassword: "Save Password",
+    eventsSectionTitle: "Upcoming Events & Attendance",
+    eventsSectionText:
+      "Manage upcoming drives, review attendance and maintain event details for the society.",
+    eventLoading: "Loading events...",
+    eventEmpty: "No events available yet.",
+    eventAttend: "Attend this event",
+    eventParticipants: "Participants",
+    eventClose: "Close",
+    eventModify: "Modify Event",
+    eventCreate: "Create Event",
+    eventCancelEdit: "Cancel Edit",
+    eventTitleLabel: "Event title",
+    eventDateLabel: "Event date",
+    eventLocationLabel: "Location",
+    eventMaxParticipantsLabel: "Max participants",
+    eventShortDescriptionLabel: "Short description",
+    eventLongDescriptionLabel: "Detailed description",
+    eventImageLabel: "Event image",
+    eventAttachmentLabel: "Event attachment",
+    eventSaveChanges: "Save Changes",
+    eventNoParticipants: "No participants registered yet.",
+    eventUpcoming: "Upcoming Event",
+    eventOpenAttachment: "Open attachment",
+    eventDelete: "Delete Event",
+    approvalPendingTitle: "Membership Pending Approval",
+    approvalPendingText:
+      "Your account exists, but access to the private members area is released manually. Please await confirmation.",
+    modify: "Modify",
+    save: "Save",
+    cancel: "Cancel",
+  },
+  de: {
+    navSociety: "Gesellschaft",
+    navPhilosophy: "Philosophie",
+    navMembership: "Mitgliedschaft",
+    heroTag: "Eine private Fahrergesellschaft",
+    heroTitle: "Automobile Kultur,\nstill verstanden.",
+    heroText:
+      "The Heritage Drivers ist ein erlesener Kreis für jene, die Kultur, Handwerkskunst und die zeitlose Präsenz aussergewöhnlicher Automobile zu schätzen wissen.",
+    cta1: "Anfrage stellen",
+    cta2: "Mehr erfahren",
+    tag1: "Automobile",
+    tag2: "Kultur",
+    tag3: "Handwerk",
+    tag4: "Stil",
+    philosophyTitle: "Nicht jedes Automobil bedarf einer Erklärung.",
+    membershipTitle: "Zugang ist bewusst gewählt – nicht breit verteilt.",
+    membershipText:
+      "Mitgliedsanfragen können diskret eingereicht werden. Die Gesellschaft ist selektiv, persönlich und basiert auf gemeinsamen Werten wie Stil, Haltung und technischem Verständnis.",
+    enquiryName: "Name",
+    enquiryEmail: "E-Mail",
+    enquiryMessage: "Kurze Beschreibung Ihres Interesses",
+    enquirySubmit: "Anfrage senden",
+    loginButton: "Mitglieder-Login",
+    loginTitle: "Mitgliederbereich",
+    loginSubtitle:
+      "Ausschliesslich für registrierte Mitglieder der Gesellschaft.",
+    loginFullName: "Vollständiger Name",
+    loginEmail: "E-Mail-Adresse",
+    loginPassword: "Passwort",
+    loginSubmit: "Anmelden",
+    signupSubmit: "Konto erstellen",
+    loginClose: "Schliessen",
+    switchToLogin: "Bereits registriert? Anmelden",
+    switchToSignup: "Neues Mitglied? Zugang erstellen",
+    loginForgot: "Passwort-Reset kann später über Supabase ergänzt werden.",
+    loginNote: "Zugang nur für berechtigte Mitglieder.",
+    secureAccess: "Geschützter Zugang",
+    welcome: "Willkommen zurück",
+    membersIntro:
+      "Ihr Konto ist über Supabase-Authentifizierung geschützt. Mitgliederdaten, Events und geschützte Inhalte können sicher gepflegt werden.",
+    eventCardTitle: "Nächste Ausfahrt",
+    eventCardText:
+      "Season Opening · 19.04.2026 · Teilnahme nur nach Bestätigung.",
+    notesTitle: "Mitteilungen",
+    notesText:
+      "Diskrete Updates, Club-Hinweise und Korrespondenz der Gesellschaft.",
+    atelierTitle: "Technischer Zirkel",
+    atelierText:
+      "Ausgewählte Werkstattabende, Heritage-Gespräche und mechanischer Austausch.",
+    membersPreview: "Vorschauzugang",
+    membersAreaTitle: "Privater Mitgliederbereich",
+    membersAreaSubtitle:
+      "Ein diskreter Bereich für Mitglieder, Veranstaltungen und Gesellschaftsinformationen.",
+    accountTitle: "Kontoeinstellungen",
+    accountSubtitle:
+      "Pflegen Sie Ihre Mitgliederdaten und Zugangsinformationen.",
+    accountDisplayName: "Anzeigename",
+    accountEmail: "E-Mail-Adresse",
+    accountNewPassword: "Neues Passwort",
+    accountConfirmPassword: "Neues Passwort bestätigen",
+    accountSaveName: "Name speichern",
+    accountSaveEmail: "E-Mail speichern",
+    accountSavePassword: "Passwort speichern",
+    eventsSectionTitle: "Anstehende Events & Teilnahme",
+    eventsSectionText:
+      "Verwalten Sie Ausfahrten, prüfen Sie Anmeldungen und pflegen Sie die Event-Daten der Gesellschaft.",
+    eventLoading: "Events werden geladen...",
+    eventEmpty: "Noch keine Events vorhanden.",
+    eventAttend: "An diesem Event teilnehmen",
+    eventParticipants: "Teilnehmer",
+    eventClose: "Schliessen",
+    eventModify: "Event bearbeiten",
+    eventCreate: "Event erstellen",
+    eventCancelEdit: "Bearbeitung abbrechen",
+    eventTitleLabel: "Event-Titel",
+    eventDateLabel: "Event-Datum",
+    eventLocationLabel: "Ort",
+    eventMaxParticipantsLabel: "Max. Teilnehmer",
+    eventShortDescriptionLabel: "Kurzbeschreibung",
+    eventLongDescriptionLabel: "Ausführliche Beschreibung",
+    eventImageLabel: "Event-Bild",
+    eventAttachmentLabel: "Event-Anhang",
+    eventSaveChanges: "Änderungen speichern",
+    eventNoParticipants: "Noch keine Teilnehmer angemeldet.",
+    eventUpcoming: "Anstehendes Event",
+    eventOpenAttachment: "Anhang öffnen",
+    eventDelete: "Event löschen",
+    approvalPendingTitle: "Mitgliedschaft wartet auf Freigabe",
+    approvalPendingText:
+      "Ihr Konto besteht bereits, der Zugang zum privaten Mitgliederbereich wird jedoch manuell freigegeben. Bitte warten Sie auf die Bestätigung.",
+    modify: "Modify",
+    save: "Save",
+    cancel: "Cancel",
+  },
+};
+
+const uiMessages = {
+  en: {
+    loginSuccess: "Login successful.",
+    signupSuccess:
+      "Account created. Please check your email to confirm your registration.",
+    logoutSuccess: "You have been signed out.",
+    genericError:
+      "Something went wrong. Please review the configuration and try again.",
+    notAuthorized: "Not authorized to perform this action.",
+    eventCreateError: "Could not save event.",
+    eventCreateSuccess: "Event created successfully.",
+    eventUpdateSuccess: "Event updated successfully.",
+    eventDeleteSuccess: "Event deleted successfully.",
+    eventDeleteConfirm: "Do you really want to delete this event?",
+    profileUpdateSuccess: "Profile name updated successfully.",
+    emailUpdateSuccess:
+      "Email update requested. Please confirm via the email sent by Supabase.",
+    passwordUpdateSuccess: "Password updated successfully.",
+    passwordMismatch: "The new passwords do not match.",
+    passwordTooShort: "Please use a password with at least 8 characters.",
+    participantUpdateSuccess: "Attendance updated successfully.",
+    uploadError: "File upload failed.",
+    enquirySuccess: "Your enquiry has been submitted successfully.",
+    enquiryError: "Your enquiry could not be submitted.",
+    enquiryMissingFields:
+      "Please provide at least your name and email address.",
+    setupTitle: "Supabase setup required",
+    setupText:
+      "Replace the placeholder Supabase URL and anon key in the code to activate real authentication, password protection and database-backed user accounts.",
+  },
+  de: {
+    loginSuccess: "Anmeldung erfolgreich.",
+    signupSuccess:
+      "Konto erstellt. Bitte bestätigen Sie Ihre Registrierung über die E-Mail.",
+    logoutSuccess: "Sie wurden abgemeldet.",
+    genericError:
+      "Etwas ist schiefgelaufen. Bitte prüfen Sie die Konfiguration und versuchen Sie es erneut.",
+    notAuthorized: "Keine Berechtigung für diese Aktion.",
+    eventCreateError: "Event konnte nicht gespeichert werden.",
+    eventCreateSuccess: "Event erfolgreich erstellt.",
+    eventUpdateSuccess: "Event erfolgreich aktualisiert.",
+    eventDeleteSuccess: "Event erfolgreich gelöscht.",
+    eventDeleteConfirm: "Soll dieses Event wirklich gelöscht werden?",
+    profileUpdateSuccess: "Anzeigename erfolgreich aktualisiert.",
+    emailUpdateSuccess:
+      "Änderung der E-Mail angestossen. Bitte die Bestätigungs-E-Mail von Supabase prüfen.",
+    passwordUpdateSuccess: "Passwort erfolgreich aktualisiert.",
+    passwordMismatch: "Die neuen Passwörter stimmen nicht überein.",
+    passwordTooShort: "Bitte verwenden Sie ein Passwort mit mindestens 8 Zeichen.",
+    participantUpdateSuccess: "Teilnahme erfolgreich aktualisiert.",
+    uploadError: "Datei-Upload fehlgeschlagen.",
+    enquirySuccess: "Ihre Anfrage wurde erfolgreich übermittelt.",
+    enquiryError: "Ihre Anfrage konnte nicht übermittelt werden.",
+    enquiryMissingFields:
+      "Bitte geben Sie mindestens Ihren Namen und Ihre E-Mail-Adresse an.",
+    setupTitle: "Supabase-Einrichtung erforderlich",
+    setupText:
+      "Ersetzen Sie die Platzhalter für Supabase URL und Anon Key im Code, damit echte Authentifizierung, Passwortschutz und datenbankgestützte Benutzerkonten aktiv werden.",
+  },
+};
+
+function TextEditorControls({ isAdmin, isEditing, onModify, onSave, onCancel, modifyLabel, saveLabel, cancelLabel }) {
+  if (!isAdmin) return null;
+
+  return (
+    <div className="mt-2 flex flex-wrap gap-2">
+      {!isEditing ? (
+        <button
+          type="button"
+          onClick={onModify}
+          className="inline-flex items-center gap-2 rounded-full border border-[#b6924f] px-3 py-1 text-[10px] uppercase tracking-[0.2em] text-[#f2e6cf]"
+        >
+          <Pencil className="h-3 w-3" />
+          {modifyLabel}
+        </button>
+      ) : (
+        <>
+          <button
+            type="button"
+            onClick={onSave}
+            className="rounded-full bg-[#b6924f] px-3 py-1 text-[10px] uppercase tracking-[0.2em] text-black"
+          >
+            {saveLabel}
+          </button>
+          <button
+            type="button"
+            onClick={onCancel}
+            className="rounded-full border border-[#3b311d] px-3 py-1 text-[10px] uppercase tracking-[0.2em] text-[#f2e6cf]"
+          >
+            {cancelLabel}
+          </button>
+        </>
+      )}
+    </div>
+  );
+}
+
+function EditableText({
+  isAdmin,
+  value,
+  onSave,
+  multiline = false,
+  className = "",
+  as = "div",
+  modifyLabel,
+  saveLabel,
+  cancelLabel,
+}) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [draft, setDraft] = useState(value || "");
+
+  useEffect(() => {
+    if (!isEditing) setDraft(value || "");
+  }, [value, isEditing]);
+
+  const Tag = as;
+
+  return (
+    <div>
+      {!isEditing ? (
+        <Tag className={className}>
+          {multiline
+            ? (value || "").split("\n").map((line, i) => (
+                <span key={i}>
+                  {line}
+                  <br />
+                </span>
+              ))
+            : value}
+        </Tag>
+      ) : multiline ? (
+        <textarea
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          className="min-h-[110px] w-full rounded-2xl border border-[#342a1a] bg-black/60 p-4 text-[#efe2c5] outline-none"
+        />
+      ) : (
+        <input
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          className="w-full rounded-2xl border border-[#342a1a] bg-black/60 p-3 text-[#efe2c5] outline-none"
+        />
+      )}
+
+      <TextEditorControls
+        isAdmin={isAdmin}
+        isEditing={isEditing}
+        onModify={() => setIsEditing(true)}
+        onSave={async () => {
+          await onSave(draft);
+          setIsEditing(false);
+        }}
+        onCancel={() => {
+          setDraft(value || "");
+          setIsEditing(false);
+        }}
+        modifyLabel={modifyLabel}
+        saveLabel={saveLabel}
+        cancelLabel={cancelLabel}
+      />
+    </div>
+  );
+}
+
+function EditablePlaceholderField({
+  isAdmin,
+  value,
+  onSave,
+  inputType = "input",
+  fieldValue,
+  onFieldChange,
+  modifyLabel,
+  saveLabel,
+  cancelLabel,
+  className = "",
+  extraProps = {},
+}) {
+  const [isEditingPlaceholder, setIsEditingPlaceholder] = useState(false);
+  const [draftPlaceholder, setDraftPlaceholder] = useState(value || "");
+
+  useEffect(() => {
+    if (!isEditingPlaceholder) setDraftPlaceholder(value || "");
+  }, [value, isEditingPlaceholder]);
+
+  return (
+    <div>
+      {inputType === "textarea" ? (
+        <textarea
+          value={fieldValue}
+          onChange={onFieldChange}
+          placeholder={value}
+          className={className}
+          {...extraProps}
+        />
+      ) : (
+        <input
+          value={fieldValue}
+          onChange={onFieldChange}
+          placeholder={value}
+          className={className}
+          {...extraProps}
+        />
+      )}
+
+      {isAdmin && (
+        <div className="mt-2">
+          {!isEditingPlaceholder ? (
+            <button
+              type="button"
+              onClick={() => setIsEditingPlaceholder(true)}
+              className="rounded-full border border-[#b6924f] px-3 py-1 text-[10px] uppercase tracking-[0.2em] text-[#f2e6cf]"
+            >
+              {modifyLabel}
+            </button>
+          ) : (
+            <div className="space-y-2">
+              <input
+                value={draftPlaceholder}
+                onChange={(e) => setDraftPlaceholder(e.target.value)}
+                className="w-full rounded-2xl border border-[#342a1a] bg-black/60 p-3 text-[#efe2c5] outline-none"
+              />
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={async () => {
+                    await onSave(draftPlaceholder);
+                    setIsEditingPlaceholder(false);
+                  }}
+                  className="rounded-full bg-[#b6924f] px-3 py-1 text-[10px] uppercase tracking-[0.2em] text-black"
+                >
+                  {saveLabel}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDraftPlaceholder(value || "");
+                    setIsEditingPlaceholder(false);
+                  }}
+                  className="rounded-full border border-[#3b311d] px-3 py-1 text-[10px] uppercase tracking-[0.2em] text-[#f2e6cf]"
+                >
+                  {cancelLabel}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function TheHeritageDriversLandingPage() {
   const [lang, setLang] = useState("en");
   const [showLogin, setShowLogin] = useState(false);
@@ -51,6 +491,7 @@ export default function TheHeritageDriversLandingPage() {
 
   const [session, setSession] = useState(null);
   const [profile, setProfile] = useState(null);
+  const [websiteContent, setWebsiteContent] = useState({});
 
   const [loading, setLoading] = useState(false);
   const [initializing, setInitializing] = useState(true);
@@ -85,266 +526,49 @@ export default function TheHeritageDriversLandingPage() {
   });
   const [enquiryLoading, setEnquiryLoading] = useState(false);
 
-  const t = {
-    en: {
-      nav: ["Society", "Philosophy", "Membership"],
-      heroTag: "A Private Drivers Society",
-      heroTitle: "Heritage motoring,\nquietly understood.",
-      heroText:
-        "The Heritage Drivers is a refined circle for those who appreciate the culture, craftsmanship and enduring presence of distinguished motor cars.",
-      cta1: "Request Access",
-      cta2: "Discover More",
-      tags: ["Motor Cars", "Culture", "Craftsmanship", "Taste"],
-      philosophyTitle: "Not every motor car needs explanation.",
-      membershipTitle: "Admission is intended to be considered, not crowded.",
-      membershipText:
-        "Membership enquiries may be submitted discreetly. The society is envisioned as selective, personal and founded on shared standards of taste, conduct and mechanical appreciation.",
-      form: {
-        name: "Name",
-        email: "Email",
-        message: "A brief note about your interest",
-        submit: "Submit Enquiry",
-      },
-      login: {
-        button: "Member Login",
-        title: "Members Access",
-        subtitle: "Reserved for registered members of the society.",
-        email: "Email address",
-        password: "Password",
-        fullName: "Full name",
-        submit: "Sign In",
-        signUp: "Create Account",
-        note: "Private access only.",
-        close: "Close",
-        switchToLogin: "Already registered? Sign in",
-        switchToSignup: "New member? Create access",
-        forgot: "Password reset can be added via Supabase if desired.",
-      },
-      members: {
-        label: "Members",
-        title: "Private Members Area",
-        subtitle:
-          "A discreet section for members, events and society information.",
-        welcome: "Welcome back",
-        intro:
-          "Your account is protected by Supabase authentication. Member data, events and protected content can be maintained securely.",
-        eventTitle: "Upcoming Drive",
-        eventText: "Season Opening · 19.04.2026 · Private confirmation required.",
-        registryTitle: "Members Notes",
-        registryText:
-          "Discreet updates, club notices and society correspondence.",
-        atelierTitle: "Technical Circle",
-        atelierText:
-          "Selected workshop evenings, heritage discussions and mechanical exchange.",
-        secure: "Protected access",
-        signOut: "Sign Out",
-        preview: "Preview access",
-        signedInAs: "Signed in as",
-      },
-      setup: {
-        title: "Supabase setup required",
-        text:
-          "Replace the placeholder Supabase URL and anon key in the code to activate real authentication, password protection and database-backed user accounts.",
-      },
-      messages: {
-        loginSuccess: "Login successful.",
-        signupSuccess:
-          "Account created. Please check your email to confirm your registration.",
-        logoutSuccess: "You have been signed out.",
-        genericError:
-          "Something went wrong. Please review the configuration and try again.",
-        notAuthorized: "Not authorized to perform this action.",
-        eventCreateError: "Could not save event.",
-        eventCreateSuccess: "Event created successfully.",
-        eventUpdateSuccess: "Event updated successfully.",
-        eventDeleteSuccess: "Event deleted successfully.",
-        eventDeleteConfirm: "Do you really want to delete this event?",
-        profileUpdateSuccess: "Profile name updated successfully.",
-        emailUpdateSuccess:
-          "Email update requested. Please confirm via the email sent by Supabase.",
-        passwordUpdateSuccess: "Password updated successfully.",
-        passwordMismatch: "The new passwords do not match.",
-        passwordTooShort: "Please use a password with at least 8 characters.",
-        participantUpdateSuccess: "Attendance updated successfully.",
-        uploadError: "File upload failed.",
-        enquirySuccess: "Your enquiry has been submitted successfully.",
-        enquiryError: "Your enquiry could not be submitted.",
-        enquiryMissingFields:
-          "Please provide at least your name and email address.",
-      },
-      account: {
-        title: "Account Settings",
-        subtitle: "Maintain your member details and access credentials.",
-        fullName: "Display name",
-        email: "Email address",
-        newPassword: "New password",
-        confirmPassword: "Confirm new password",
-        saveName: "Save Name",
-        saveEmail: "Save Email",
-        savePassword: "Save Password",
-      },
-      event: {
-        sectionTitle: "Upcoming Events & Attendance",
-        sectionText:
-          "Manage upcoming drives, review attendance and maintain event details for the society.",
-        loading: "Loading events...",
-        empty: "No events available yet.",
-        attend: "Attend this event",
-        participants: "Participants",
-        close: "Close",
-        modify: "Modify Event",
-        create: "Create Event",
-        cancelEdit: "Cancel Edit",
-        title: "Event title",
-        date: "Event date",
-        location: "Location",
-        maxParticipants: "Max participants",
-        shortDescription: "Short description",
-        longDescription: "Detailed description",
-        image: "Event image",
-        attachment: "Event attachment",
-        saveChanges: "Save Changes",
-        noParticipants: "No participants registered yet.",
-        upcoming: "Upcoming Event",
-        maxParticipantsLabel: "Max participants",
-        openAttachment: "Open attachment",
-        delete: "Delete Event",
-      },
-    },
-    de: {
-      nav: ["Gesellschaft", "Philosophie", "Mitgliedschaft"],
-      heroTag: "Eine private Fahrergesellschaft",
-      heroTitle: "Automobile Kultur,\nstill verstanden.",
-      heroText:
-        "The Heritage Drivers ist ein erlesener Kreis für jene, die Kultur, Handwerkskunst und die zeitlose Präsenz aussergewöhnlicher Automobile zu schätzen wissen.",
-      cta1: "Anfrage stellen",
-      cta2: "Mehr erfahren",
-      tags: ["Automobile", "Kultur", "Handwerk", "Stil"],
-      philosophyTitle: "Nicht jedes Automobil bedarf einer Erklärung.",
-      membershipTitle: "Zugang ist bewusst gewählt – nicht breit verteilt.",
-      membershipText:
-        "Mitgliedsanfragen können diskret eingereicht werden. Die Gesellschaft ist selektiv, persönlich und basiert auf gemeinsamen Werten wie Stil, Haltung und technischem Verständnis.",
-      form: {
-        name: "Name",
-        email: "E-Mail",
-        message: "Kurze Beschreibung Ihres Interesses",
-        submit: "Anfrage senden",
-      },
-      login: {
-        button: "Mitglieder-Login",
-        title: "Mitgliederbereich",
-        subtitle:
-          "Ausschliesslich für registrierte Mitglieder der Gesellschaft.",
-        email: "E-Mail-Adresse",
-        password: "Passwort",
-        fullName: "Vollständiger Name",
-        submit: "Anmelden",
-        signUp: "Konto erstellen",
-        note: "Zugang nur für berechtigte Mitglieder.",
-        close: "Schliessen",
-        switchToLogin: "Bereits registriert? Anmelden",
-        switchToSignup: "Neues Mitglied? Zugang erstellen",
-        forgot: "Passwort-Reset kann später über Supabase ergänzt werden.",
-      },
-      members: {
-        label: "Mitglieder",
-        title: "Privater Mitgliederbereich",
-        subtitle:
-          "Ein diskreter Bereich für Mitglieder, Veranstaltungen und Gesellschaftsinformationen.",
-        welcome: "Willkommen zurück",
-        intro:
-          "Ihr Konto ist über Supabase-Authentifizierung geschützt. Mitgliederdaten, Events und geschützte Inhalte können sicher gepflegt werden.",
-        eventTitle: "Nächste Ausfahrt",
-        eventText:
-          "Season Opening · 19.04.2026 · Teilnahme nur nach Bestätigung.",
-        registryTitle: "Mitteilungen",
-        registryText:
-          "Diskrete Updates, Club-Hinweise und Korrespondenz der Gesellschaft.",
-        atelierTitle: "Technischer Zirkel",
-        atelierText:
-          "Ausgewählte Werkstattabende, Heritage-Gespräche und mechanischer Austausch.",
-        secure: "Geschützter Zugang",
-        signOut: "Abmelden",
-        preview: "Vorschauzugang",
-        signedInAs: "Angemeldet als",
-      },
-      setup: {
-        title: "Supabase-Einrichtung erforderlich",
-        text:
-          "Ersetzen Sie die Platzhalter für Supabase URL und Anon Key im Code, damit echte Authentifizierung, Passwortschutz und datenbankgestützte Benutzerkonten aktiv werden.",
-      },
-      messages: {
-        loginSuccess: "Anmeldung erfolgreich.",
-        signupSuccess:
-          "Konto erstellt. Bitte bestätigen Sie Ihre Registrierung über die E-Mail.",
-        logoutSuccess: "Sie wurden abgemeldet.",
-        genericError:
-          "Etwas ist schiefgelaufen. Bitte prüfen Sie die Konfiguration und versuchen Sie es erneut.",
-        notAuthorized: "Keine Berechtigung für diese Aktion.",
-        eventCreateError: "Event konnte nicht gespeichert werden.",
-        eventCreateSuccess: "Event erfolgreich erstellt.",
-        eventUpdateSuccess: "Event erfolgreich aktualisiert.",
-        eventDeleteSuccess: "Event erfolgreich gelöscht.",
-        eventDeleteConfirm: "Soll dieses Event wirklich gelöscht werden?",
-        profileUpdateSuccess: "Anzeigename erfolgreich aktualisiert.",
-        emailUpdateSuccess:
-          "Änderung der E-Mail angestossen. Bitte die Bestätigungs-E-Mail von Supabase prüfen.",
-        passwordUpdateSuccess: "Passwort erfolgreich aktualisiert.",
-        passwordMismatch: "Die neuen Passwörter stimmen nicht überein.",
-        passwordTooShort:
-          "Bitte verwenden Sie ein Passwort mit mindestens 8 Zeichen.",
-        participantUpdateSuccess: "Teilnahme erfolgreich aktualisiert.",
-        uploadError: "Datei-Upload fehlgeschlagen.",
-        enquirySuccess: "Ihre Anfrage wurde erfolgreich übermittelt.",
-        enquiryError: "Ihre Anfrage konnte nicht übermittelt werden.",
-        enquiryMissingFields:
-          "Bitte geben Sie mindestens Ihren Namen und Ihre E-Mail-Adresse an.",
-      },
-      account: {
-        title: "Kontoeinstellungen",
-        subtitle:
-          "Pflegen Sie Ihre Mitgliederdaten und Zugangsinformationen.",
-        fullName: "Anzeigename",
-        email: "E-Mail-Adresse",
-        newPassword: "Neues Passwort",
-        confirmPassword: "Neues Passwort bestätigen",
-        saveName: "Name speichern",
-        saveEmail: "E-Mail speichern",
-        savePassword: "Passwort speichern",
-      },
-      event: {
-        sectionTitle: "Anstehende Events & Teilnahme",
-        sectionText:
-          "Verwalten Sie Ausfahrten, prüfen Sie Anmeldungen und pflegen Sie die Event-Daten der Gesellschaft.",
-        loading: "Events werden geladen...",
-        empty: "Noch keine Events vorhanden.",
-        attend: "An diesem Event teilnehmen",
-        participants: "Teilnehmer",
-        close: "Schliessen",
-        modify: "Event bearbeiten",
-        create: "Event erstellen",
-        cancelEdit: "Bearbeitung abbrechen",
-        title: "Event-Titel",
-        date: "Event-Datum",
-        location: "Ort",
-        maxParticipants: "Max. Teilnehmer",
-        shortDescription: "Kurzbeschreibung",
-        longDescription: "Ausführliche Beschreibung",
-        image: "Event-Bild",
-        attachment: "Event-Anhang",
-        saveChanges: "Änderungen speichern",
-        noParticipants: "Noch keine Teilnehmer angemeldet.",
-        upcoming: "Anstehendes Event",
-        maxParticipantsLabel: "Max. Teilnehmer",
-        openAttachment: "Anhang öffnen",
-        delete: "Event löschen",
-      },
-    },
-  };
-
-  const content = t[lang];
+  const messages = uiMessages[lang];
   const isLoggedIn = !!session;
   const isAdmin = profile?.role === "admin";
+  const isApproved = profile?.approved === true;
+  const hasMemberAccess = isLoggedIn && isApproved;
+
+  const tc = (key) => {
+    const saved = websiteContent?.[lang]?.[key];
+    const fallback = fallbackContent?.[lang]?.[key];
+    return saved || fallback || "";
+  };
+
+  const saveContentField = async (key, value) => {
+    if (!supabase || !session?.user || !isAdmin) return;
+
+    const { error } = await supabase.from("website_content").upsert(
+      {
+        content_key: key,
+        lang,
+        content_value: value,
+        updated_by: session.user.id,
+      },
+      { onConflict: "content_key,lang" }
+    );
+
+    if (error) {
+      setStatus({ type: "error", message: error.message });
+      return;
+    }
+
+    setWebsiteContent((prev) => ({
+      ...prev,
+      [lang]: {
+        ...(prev[lang] || {}),
+        [key]: value,
+      },
+    }));
+
+    setStatus({
+      type: "success",
+      message: lang === "en" ? "Content updated." : "Inhalt aktualisiert.",
+    });
+  };
 
   const memberName = useMemo(() => {
     if (profile?.full_name) return profile.full_name;
@@ -372,6 +596,23 @@ export default function TheHeritageDriversLandingPage() {
   const syncAccountFields = (nextProfile, nextSession) => {
     setAccountName(nextProfile?.full_name || "");
     setAccountEmail(nextSession?.user?.email || "");
+  };
+
+  const loadWebsiteContent = async () => {
+    if (!supabase) return;
+
+    const { data, error } = await supabase
+      .from("website_content")
+      .select("content_key, lang, content_value");
+
+    if (error || !data) return;
+
+    const next = {};
+    for (const row of data) {
+      if (!next[row.lang]) next[row.lang] = {};
+      next[row.lang][row.content_key] = row.content_value;
+    }
+    setWebsiteContent(next);
   };
 
   const loadProfile = async (userId) => {
@@ -437,6 +678,8 @@ export default function TheHeritageDriversLandingPage() {
     let mounted = true;
 
     const init = async () => {
+      await loadWebsiteContent();
+
       const {
         data: { session: currentSession },
       } = await supabase.auth.getSession();
@@ -451,9 +694,7 @@ export default function TheHeritageDriversLandingPage() {
         clearAppState();
       }
 
-      if (mounted) {
-        setInitializing(false);
-      }
+      if (mounted) setInitializing(false);
     };
 
     init();
@@ -478,12 +719,7 @@ export default function TheHeritageDriversLandingPage() {
     };
   }, []);
 
-  const uploadFileToBucket = async ({
-    bucket,
-    folder,
-    file,
-    makePublic = true,
-  }) => {
+  const uploadFileToBucket = async ({ bucket, folder, file, makePublic = true }) => {
     if (!supabase || !file || !session?.user) return { url: "", name: "" };
 
     const fileExt = file.name.split(".").pop();
@@ -493,59 +729,44 @@ export default function TheHeritageDriversLandingPage() {
 
     const { error: uploadError } = await supabase.storage
       .from(bucket)
-      .upload(filePath, file, {
-        upsert: false,
-      });
+      .upload(filePath, file, { upsert: false });
 
-    if (uploadError) {
-      throw uploadError;
-    }
+    if (uploadError) throw uploadError;
 
     if (makePublic) {
       const { data } = supabase.storage.from(bucket).getPublicUrl(filePath);
-      return {
-        url: data?.publicUrl || "",
-        name: file.name,
-      };
+      return { url: data?.publicUrl || "", name: file.name };
     }
 
-    return {
-      url: filePath,
-      name: file.name,
-    };
+    return { url: filePath, name: file.name };
   };
 
-  const handleUploadEventImage = async () => {
-    return uploadFileToBucket({
+  const handleUploadEventImage = async () =>
+    uploadFileToBucket({
       bucket: "event-images",
       folder: "events",
       file: eventImageFile,
       makePublic: true,
     });
-  };
 
-  const handleUploadEventAttachment = async () => {
-    return uploadFileToBucket({
+  const handleUploadEventAttachment = async () =>
+    uploadFileToBucket({
       bucket: "event-files",
       folder: "attachments",
       file: eventAttachmentFile,
       makePublic: true,
     });
-  };
 
   const handleSubmitEnquiry = async () => {
     resetStatus();
 
     if (!supabase) {
-      setStatus({ type: "error", message: content.setup.text });
+      setStatus({ type: "error", message: messages.setupText });
       return;
     }
 
     if (!enquiryForm.full_name.trim() || !enquiryForm.email.trim()) {
-      setStatus({
-        type: "error",
-        message: content.messages.enquiryMissingFields,
-      });
+      setStatus({ type: "error", message: messages.enquiryMissingFields });
       return;
     }
 
@@ -562,60 +783,42 @@ export default function TheHeritageDriversLandingPage() {
     setEnquiryLoading(false);
 
     if (error) {
-      setStatus({
-        type: "error",
-        message: error.message || content.messages.enquiryError,
-      });
+      setStatus({ type: "error", message: error.message || messages.enquiryError });
       return;
     }
 
-    setEnquiryForm({
-      full_name: "",
-      email: "",
-      interest_note: "",
-    });
-
-    setStatus({
-      type: "success",
-      message: content.messages.enquirySuccess,
-    });
+    setEnquiryForm({ full_name: "", email: "", interest_note: "" });
+    setStatus({ type: "success", message: messages.enquirySuccess });
   };
 
   const handleLogin = async () => {
     resetStatus();
-
     if (!supabase) {
-      setStatus({ type: "error", message: content.setup.text });
+      setStatus({ type: "error", message: messages.setupText });
       return;
     }
 
     setLoading(true);
-
     const { error } = await supabase.auth.signInWithPassword({
       email: email.trim(),
       password,
     });
-
     setLoading(false);
 
     if (error) {
-      setStatus({
-        type: "error",
-        message: error.message || content.messages.genericError,
-      });
+      setStatus({ type: "error", message: error.message || messages.genericError });
       return;
     }
 
-    setStatus({ type: "success", message: content.messages.loginSuccess });
+    setStatus({ type: "success", message: messages.loginSuccess });
     setShowLogin(false);
     setPassword("");
   };
 
   const handleSignup = async () => {
     resetStatus();
-
     if (!supabase) {
-      setStatus({ type: "error", message: content.setup.text });
+      setStatus({ type: "error", message: messages.setupText });
       return;
     }
 
@@ -631,10 +834,7 @@ export default function TheHeritageDriversLandingPage() {
 
     if (error) {
       setLoading(false);
-      setStatus({
-        type: "error",
-        message: error.message || content.messages.genericError,
-      });
+      setStatus({ type: "error", message: error.message || messages.genericError });
       return;
     }
 
@@ -643,51 +843,43 @@ export default function TheHeritageDriversLandingPage() {
         id: data.user.id,
         full_name: fullName.trim(),
         role: "member",
-        approved: true,
+        approved: false,
       });
     }
 
     setLoading(false);
-    setStatus({ type: "success", message: content.messages.signupSuccess });
+    setStatus({ type: "success", message: messages.signupSuccess });
     setAuthMode("login");
     setPassword("");
   };
 
   const handleLogout = async () => {
     resetStatus();
-
     if (!supabase) {
       clearAppState();
       return;
     }
 
     const { error } = await supabase.auth.signOut();
-
     if (error) {
-      setStatus({
-        type: "error",
-        message: error.message || content.messages.genericError,
-      });
+      setStatus({ type: "error", message: error.message || messages.genericError });
       return;
     }
 
     clearAppState();
     setPassword("");
-    setStatus({ type: "success", message: content.messages.logoutSuccess });
+    setStatus({ type: "success", message: messages.logoutSuccess });
   };
 
   const handleUpdateProfileName = async () => {
     resetStatus();
-
     if (!supabase || !session?.user) return;
 
     setAccountLoading(true);
-
     const { error } = await supabase
       .from("member_profiles")
       .update({ full_name: accountName.trim() })
       .eq("id", session.user.id);
-
     setAccountLoading(false);
 
     if (error) {
@@ -696,23 +888,17 @@ export default function TheHeritageDriversLandingPage() {
     }
 
     await loadProfile(session.user.id);
-    setStatus({
-      type: "success",
-      message: content.messages.profileUpdateSuccess,
-    });
+    setStatus({ type: "success", message: messages.profileUpdateSuccess });
   };
 
   const handleUpdateEmail = async () => {
     resetStatus();
-
     if (!supabase || !session?.user) return;
 
     setAccountLoading(true);
-
     const { error } = await supabase.auth.updateUser({
       email: accountEmail.trim(),
     });
-
     setAccountLoading(false);
 
     if (error) {
@@ -720,39 +906,25 @@ export default function TheHeritageDriversLandingPage() {
       return;
     }
 
-    setStatus({
-      type: "success",
-      message: content.messages.emailUpdateSuccess,
-    });
+    setStatus({ type: "success", message: messages.emailUpdateSuccess });
   };
 
   const handleUpdatePassword = async () => {
     resetStatus();
-
     if (!supabase || !session?.user) return;
 
     if (accountPassword !== accountPasswordConfirm) {
-      setStatus({
-        type: "error",
-        message: content.messages.passwordMismatch,
-      });
+      setStatus({ type: "error", message: messages.passwordMismatch });
       return;
     }
 
     if (accountPassword.length < 8) {
-      setStatus({
-        type: "error",
-        message: content.messages.passwordTooShort,
-      });
+      setStatus({ type: "error", message: messages.passwordTooShort });
       return;
     }
 
     setAccountLoading(true);
-
-    const { error } = await supabase.auth.updateUser({
-      password: accountPassword,
-    });
-
+    const { error } = await supabase.auth.updateUser({ password: accountPassword });
     setAccountLoading(false);
 
     if (error) {
@@ -762,20 +934,13 @@ export default function TheHeritageDriversLandingPage() {
 
     setAccountPassword("");
     setAccountPasswordConfirm("");
-    setStatus({
-      type: "success",
-      message: content.messages.passwordUpdateSuccess,
-    });
+    setStatus({ type: "success", message: messages.passwordUpdateSuccess });
   };
 
   const handleCreateEvent = async () => {
     resetStatus();
-
     if (!supabase || !session?.user || !isAdmin) {
-      setStatus({
-        type: "error",
-        message: content.messages.notAuthorized,
-      });
+      setStatus({ type: "error", message: messages.notAuthorized });
       return;
     }
 
@@ -813,44 +978,28 @@ export default function TheHeritageDriversLandingPage() {
         is_active: true,
       };
 
-      let response;
-
-      if (editingEventId) {
-        response = await supabase
-          .from("events")
-          .update(payload)
-          .eq("id", editingEventId);
-      } else {
-        response = await supabase.from("events").insert(payload);
-      }
+      const response = editingEventId
+        ? await supabase.from("events").update(payload).eq("id", editingEventId)
+        : await supabase.from("events").insert(payload);
 
       if (response.error) {
-        setStatus({
-          type: "error",
-          message: response.error.message || content.messages.eventCreateError,
-        });
+        setStatus({ type: "error", message: response.error.message || messages.eventCreateError });
         setEventSaving(false);
         return;
       }
 
       setStatus({
         type: "success",
-        message: editingEventId
-          ? content.messages.eventUpdateSuccess
-          : content.messages.eventCreateSuccess,
+        message: editingEventId ? messages.eventUpdateSuccess : messages.eventCreateSuccess,
       });
 
       setEventForm(emptyEventForm);
       setEventImageFile(null);
       setEventAttachmentFile(null);
       setEditingEventId(null);
-
       await loadEvents();
     } catch (err) {
-      setStatus({
-        type: "error",
-        message: err?.message || content.messages.uploadError,
-      });
+      setStatus({ type: "error", message: err?.message || messages.uploadError });
     }
 
     setEventSaving(false);
@@ -858,20 +1007,15 @@ export default function TheHeritageDriversLandingPage() {
 
   const handleDeleteEvent = async (eventId) => {
     resetStatus();
-
     if (!supabase || !session?.user || !isAdmin) {
-      setStatus({
-        type: "error",
-        message: content.messages.notAuthorized,
-      });
+      setStatus({ type: "error", message: messages.notAuthorized });
       return;
     }
 
-    const confirmed = window.confirm(content.messages.eventDeleteConfirm);
+    const confirmed = window.confirm(messages.eventDeleteConfirm);
     if (!confirmed) return;
 
     const { error } = await supabase.from("events").delete().eq("id", eventId);
-
     if (error) {
       setStatus({ type: "error", message: error.message });
       return;
@@ -885,10 +1029,7 @@ export default function TheHeritageDriversLandingPage() {
     }
 
     setParticipantsView(null);
-    setStatus({
-      type: "success",
-      message: content.messages.eventDeleteSuccess,
-    });
+    setStatus({ type: "success", message: messages.eventDeleteSuccess });
     await loadEvents();
   };
 
@@ -918,15 +1059,11 @@ export default function TheHeritageDriversLandingPage() {
 
   const isRegisteredForEvent = (eventId) => {
     if (!session?.user) return false;
-
-    return participants.some(
-      (p) => p.event_id === eventId && p.user_id === session.user.id
-    );
+    return participants.some((p) => p.event_id === eventId && p.user_id === session.user.id);
   };
 
   const handleToggleParticipation = async (eventId, checked) => {
     resetStatus();
-
     if (!supabase || !session?.user) return;
 
     if (checked) {
@@ -960,10 +1097,7 @@ export default function TheHeritageDriversLandingPage() {
     }
 
     await loadParticipants();
-    setStatus({
-      type: "success",
-      message: content.messages.participantUpdateSuccess,
-    });
+    setStatus({ type: "success", message: messages.participantUpdateSuccess });
   };
 
   const handleViewParticipants = async (eventId) => {
@@ -982,10 +1116,7 @@ export default function TheHeritageDriversLandingPage() {
     const userIds = (data || []).map((row) => row.user_id);
 
     if (userIds.length === 0) {
-      setParticipantsView({
-        eventId,
-        rows: [],
-      });
+      setParticipantsView({ eventId, rows: [] });
       return;
     }
 
@@ -999,19 +1130,13 @@ export default function TheHeritageDriversLandingPage() {
       return;
     }
 
-    const nameMap = new Map(
-      (profilesData || []).map((row) => [row.id, row.full_name])
-    );
-
+    const nameMap = new Map((profilesData || []).map((row) => [row.id, row.full_name]));
     const rows = (data || []).map((row) => ({
       ...row,
       full_name: nameMap.get(row.user_id) || row.user_id,
     }));
 
-    setParticipantsView({
-      eventId,
-      rows,
-    });
+    setParticipantsView({ eventId, rows });
   };
 
   const StatusBanner = () =>
@@ -1037,15 +1162,9 @@ export default function TheHeritageDriversLandingPage() {
       <header className="border-b border-[#2a2213]">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-5">
           <div className="flex items-center gap-4">
-            <img
-              src="/logo.png"
-              alt="The Heritage Drivers"
-              className="h-10 w-10 object-contain"
-            />
+            <img src="/logo.png" alt="The Heritage Drivers" className="h-10 w-10 object-contain" />
             <div>
-              <div className="text-xs uppercase tracking-[0.4em] text-[#b6924f]">
-                The Heritage Drivers
-              </div>
+              <div className="text-xs uppercase tracking-[0.4em] text-[#b6924f]">The Heritage Drivers</div>
               <div className="text-sm text-[#a89c84]">Motor Cars & Culture</div>
             </div>
           </div>
@@ -1053,13 +1172,37 @@ export default function TheHeritageDriversLandingPage() {
           <div className="flex items-center gap-4">
             <nav className="hidden items-center gap-8 text-sm md:flex">
               <Link href="/society" className="transition hover:text-white">
-                Society
+                <EditableText
+                  isAdmin={isAdmin}
+                  value={tc("navSociety")}
+                  onSave={(v) => saveContentField("navSociety", v)}
+                  as="span"
+                  modifyLabel={tc("modify")}
+                  saveLabel={tc("save")}
+                  cancelLabel={tc("cancel")}
+                />
               </Link>
               <Link href="/philosophy" className="transition hover:text-white">
-                Philosophy
+                <EditableText
+                  isAdmin={isAdmin}
+                  value={tc("navPhilosophy")}
+                  onSave={(v) => saveContentField("navPhilosophy", v)}
+                  as="span"
+                  modifyLabel={tc("modify")}
+                  saveLabel={tc("save")}
+                  cancelLabel={tc("cancel")}
+                />
               </Link>
               <Link href="/membership" className="transition hover:text-white">
-                Membership
+                <EditableText
+                  isAdmin={isAdmin}
+                  value={tc("navMembership")}
+                  onSave={(v) => saveContentField("navMembership", v)}
+                  as="span"
+                  modifyLabel={tc("modify")}
+                  saveLabel={tc("save")}
+                  cancelLabel={tc("cancel")}
+                />
               </Link>
 
               {!isLoggedIn ? (
@@ -1071,7 +1214,15 @@ export default function TheHeritageDriversLandingPage() {
                   }}
                   className="inline-flex rounded-full border border-[#3b311d] px-4 py-2 text-xs uppercase tracking-[0.22em] text-[#e8dcc0] transition hover:border-[#b6924f] hover:text-white"
                 >
-                  {content.login.button}
+                  <EditableText
+                    isAdmin={isAdmin}
+                    value={tc("loginButton")}
+                    onSave={(v) => saveContentField("loginButton", v)}
+                    as="span"
+                    modifyLabel={tc("modify")}
+                    saveLabel={tc("save")}
+                    cancelLabel={tc("cancel")}
+                  />
                 </button>
               ) : (
                 <button
@@ -1079,7 +1230,7 @@ export default function TheHeritageDriversLandingPage() {
                   className="inline-flex items-center gap-2 rounded-full border border-[#3b311d] px-4 py-2 text-xs uppercase tracking-[0.22em] text-[#e8dcc0] transition hover:border-[#b6924f] hover:text-white"
                 >
                   <LogOut className="h-3.5 w-3.5" />
-                  {content.members.signOut}
+                  {lang === "en" ? "Sign Out" : "Abmelden"}
                 </button>
               )}
             </nav>
@@ -1099,58 +1250,75 @@ export default function TheHeritageDriversLandingPage() {
 
         {!supabaseConfigured && (
           <div className="mb-10 rounded-[1.75rem] border border-[#4b2f20] bg-[#16100d] p-6">
-            <p className="text-xs uppercase tracking-[0.35em] text-[#b6924f]">
-              {content.setup.title}
-            </p>
-            <p className="mt-3 max-w-3xl text-sm leading-7 text-[#cfbea3]">
-              {content.setup.text}
-            </p>
+            <p className="text-xs uppercase tracking-[0.35em] text-[#b6924f]">{messages.setupTitle}</p>
+            <p className="mt-3 max-w-3xl text-sm leading-7 text-[#cfbea3]">{messages.setupText}</p>
           </div>
         )}
 
         <section>
           <div className="mb-10 flex justify-center">
-            <img
-              src="/logo.png"
-              alt="The Heritage Drivers"
-              className="h-40 object-contain"
-            />
+            <img src="/logo.png" alt="The Heritage Drivers" className="h-40 object-contain" />
           </div>
 
           {!isLoggedIn ? (
             <>
-              <p className="text-sm uppercase tracking-[0.4em] text-[#b6924f]">
-                {content.heroTag}
-              </p>
+              <EditableText
+                isAdmin={isAdmin}
+                value={tc("heroTag")}
+                onSave={(v) => saveContentField("heroTag", v)}
+                className="text-sm uppercase tracking-[0.4em] text-[#b6924f]"
+                as="p"
+                modifyLabel={tc("modify")}
+                saveLabel={tc("save")}
+                cancelLabel={tc("cancel")}
+              />
 
-              <h1 className="mt-6 text-5xl leading-tight text-[#f2e6cf]">
-                {content.heroTitle.split("\n").map((line, i) => (
-                  <span key={i}>
-                    {line}
-                    <br />
-                  </span>
-                ))}
-              </h1>
+              <EditableText
+                isAdmin={isAdmin}
+                value={tc("heroTitle")}
+                onSave={(v) => saveContentField("heroTitle", v)}
+                className="mt-6 text-5xl leading-tight text-[#f2e6cf]"
+                as="h1"
+                multiline
+                modifyLabel={tc("modify")}
+                saveLabel={tc("save")}
+                cancelLabel={tc("cancel")}
+              />
 
-              <p className="mt-6 max-w-xl text-lg text-[#bcb09a]">
-                {content.heroText}
-              </p>
+              <EditableText
+                isAdmin={isAdmin}
+                value={tc("heroText")}
+                onSave={(v) => saveContentField("heroText", v)}
+                className="mt-6 max-w-xl text-lg text-[#bcb09a]"
+                as="p"
+                modifyLabel={tc("modify")}
+                saveLabel={tc("save")}
+                cancelLabel={tc("cancel")}
+              />
 
               <div className="mt-10 flex flex-wrap gap-4">
-                <Link
-                  href="/membership"
-                  className="bg-[#b6924f] px-6 py-3 text-black"
-                >
-                  {content.cta1}
+                <Link href="/membership" className="bg-[#b6924f] px-6 py-3 text-black">
+                  <EditableText
+                    isAdmin={isAdmin}
+                    value={tc("cta1")}
+                    onSave={(v) => saveContentField("cta1", v)}
+                    as="span"
+                    modifyLabel={tc("modify")}
+                    saveLabel={tc("save")}
+                    cancelLabel={tc("cancel")}
+                  />
                 </Link>
-
-                <Link
-                  href="/society"
-                  className="border border-[#b6924f] px-6 py-3"
-                >
-                  {content.cta2}
+                <Link href="/society" className="border border-[#b6924f] px-6 py-3">
+                  <EditableText
+                    isAdmin={isAdmin}
+                    value={tc("cta2")}
+                    onSave={(v) => saveContentField("cta2", v)}
+                    as="span"
+                    modifyLabel={tc("modify")}
+                    saveLabel={tc("save")}
+                    cancelLabel={tc("cancel")}
+                  />
                 </Link>
-
                 <button
                   onClick={() => {
                     resetStatus();
@@ -1159,66 +1327,85 @@ export default function TheHeritageDriversLandingPage() {
                   }}
                   className="border border-[#3b311d] px-6 py-3 text-[#e8dcc0]"
                 >
-                  {content.login.button}
+                  {tc("loginButton")}
                 </button>
               </div>
 
               <div className="mt-10 flex flex-wrap gap-6 text-sm uppercase text-[#8b7e65]">
-                {content.tags.map((tag) => (
-                  <span key={tag}>{tag}</span>
+                {["tag1", "tag2", "tag3", "tag4"].map((key) => (
+                  <EditableText
+                    key={key}
+                    isAdmin={isAdmin}
+                    value={tc(key)}
+                    onSave={(v) => saveContentField(key, v)}
+                    as="span"
+                    modifyLabel={tc("modify")}
+                    saveLabel={tc("save")}
+                    cancelLabel={tc("cancel")}
+                  />
                 ))}
               </div>
             </>
           ) : (
             <>
-              <p className="text-sm uppercase tracking-[0.4em] text-[#b6924f]">
-                {content.members.secure}
-              </p>
+              <EditableText
+                isAdmin={isAdmin}
+                value={tc("secureAccess")}
+                onSave={(v) => saveContentField("secureAccess", v)}
+                className="text-sm uppercase tracking-[0.4em] text-[#b6924f]"
+                as="p"
+                modifyLabel={tc("modify")}
+                saveLabel={tc("save")}
+                cancelLabel={tc("cancel")}
+              />
 
               <h1 className="mt-6 text-5xl leading-tight text-[#f2e6cf]">
-                {content.members.welcome}, {memberName}
+                {tc("welcome")}, {memberName}
               </h1>
 
-              <p className="mt-6 max-w-2xl text-lg text-[#bcb09a]">
-                {content.members.intro}
-              </p>
+              <EditableText
+                isAdmin={isAdmin}
+                value={tc("membersIntro")}
+                onSave={(v) => saveContentField("membersIntro", v)}
+                className="mt-6 max-w-2xl text-lg text-[#bcb09a]"
+                as="p"
+                modifyLabel={tc("modify")}
+                saveLabel={tc("save")}
+                cancelLabel={tc("cancel")}
+              />
 
               <div className="mt-10 grid gap-6 lg:grid-cols-3">
-                <div className="rounded-[1.5rem] border border-[#2d2416] bg-[#131313] p-6">
-                  <div className="flex items-center gap-3">
-                    <Calendar className="h-5 w-5 text-[#b6924f]" />
-                    <h3 className="text-lg text-[#f2e6cf]">
-                      {content.members.eventTitle}
-                    </h3>
+                {[
+                  [Calendar, "eventCardTitle", "eventCardText"],
+                  [Mail, "notesTitle", "notesText"],
+                  [Wrench, "atelierTitle", "atelierText"],
+                ].map(([Icon, titleKey, textKey]) => (
+                  <div key={titleKey} className="rounded-[1.5rem] border border-[#2d2416] bg-[#131313] p-6">
+                    <div className="flex items-center gap-3">
+                      <Icon className="h-5 w-5 text-[#b6924f]" />
+                      <EditableText
+                        isAdmin={isAdmin}
+                        value={tc(titleKey)}
+                        onSave={(v) => saveContentField(titleKey, v)}
+                        className="text-lg text-[#f2e6cf]"
+                        as="h3"
+                        modifyLabel={tc("modify")}
+                        saveLabel={tc("save")}
+                        cancelLabel={tc("cancel")}
+                      />
+                    </div>
+                    <EditableText
+                      isAdmin={isAdmin}
+                      value={tc(textKey)}
+                      onSave={(v) => saveContentField(textKey, v)}
+                      className="mt-3 text-sm leading-6 text-[#a99c83]"
+                      as="p"
+                      modifyLabel={tc("modify")}
+                      saveLabel={tc("save")}
+                      cancelLabel={tc("cancel")}
+                    />
                   </div>
-                  <p className="mt-3 text-sm leading-6 text-[#a99c83]">
-                    {content.members.eventText}
-                  </p>
-                </div>
-
-                <div className="rounded-[1.5rem] border border-[#2d2416] bg-[#131313] p-6">
-                  <div className="flex items-center gap-3">
-                    <Mail className="h-5 w-5 text-[#b6924f]" />
-                    <h3 className="text-lg text-[#f2e6cf]">
-                      {content.members.registryTitle}
-                    </h3>
-                  </div>
-                  <p className="mt-3 text-sm leading-6 text-[#a99c83]">
-                    {content.members.registryText}
-                  </p>
-                </div>
-
-                <div className="rounded-[1.5rem] border border-[#2d2416] bg-[#131313] p-6">
-                  <div className="flex items-center gap-3">
-                    <Wrench className="h-5 w-5 text-[#b6924f]" />
-                    <h3 className="text-lg text-[#f2e6cf]">
-                      {content.members.atelierTitle}
-                    </h3>
-                  </div>
-                  <p className="mt-3 text-sm leading-6 text-[#a99c83]">
-                    {content.members.atelierText}
-                  </p>
-                </div>
+                ))}
               </div>
             </>
           )}
@@ -1227,9 +1414,16 @@ export default function TheHeritageDriversLandingPage() {
         {!isLoggedIn && (
           <section className="mt-24 grid gap-6 lg:grid-cols-2">
             <div>
-              <h2 className="text-3xl text-[#f0e3c6]">
-                {content.philosophyTitle}
-              </h2>
+              <EditableText
+                isAdmin={isAdmin}
+                value={tc("philosophyTitle")}
+                onSave={(v) => saveContentField("philosophyTitle", v)}
+                className="text-3xl text-[#f0e3c6]"
+                as="h2"
+                modifyLabel={tc("modify")}
+                saveLabel={tc("save")}
+                cancelLabel={tc("cancel")}
+              />
             </div>
 
             <div className="rounded-[2rem] border border-[#2d2416] bg-[#111111] p-8">
@@ -1238,12 +1432,26 @@ export default function TheHeritageDriversLandingPage() {
                   <User className="h-5 w-5 text-[#b6924f]" />
                 </div>
                 <div>
-                  <p className="text-xs uppercase tracking-[0.35em] text-[#b6924f]">
-                    {content.members.label}
-                  </p>
-                  <p className="mt-2 text-sm text-[#b9ad95]">
-                    {content.login.subtitle}
-                  </p>
+                  <EditableText
+                    isAdmin={isAdmin}
+                    value={lang === "en" ? "Members" : "Mitglieder"}
+                    onSave={async () => {}}
+                    className="text-xs uppercase tracking-[0.35em] text-[#b6924f]"
+                    as="p"
+                    modifyLabel={tc("modify")}
+                    saveLabel={tc("save")}
+                    cancelLabel={tc("cancel")}
+                  />
+                  <EditableText
+                    isAdmin={isAdmin}
+                    value={tc("loginSubtitle")}
+                    onSave={(v) => saveContentField("loginSubtitle", v)}
+                    className="mt-2 text-sm text-[#b9ad95]"
+                    as="p"
+                    modifyLabel={tc("modify")}
+                    saveLabel={tc("save")}
+                    cancelLabel={tc("cancel")}
+                  />
                 </div>
               </div>
 
@@ -1255,7 +1463,7 @@ export default function TheHeritageDriversLandingPage() {
                 }}
                 className="mt-6 rounded-full border border-[#b6924f] px-5 py-3 text-sm uppercase tracking-[0.24em] text-[#f0e3c6] transition hover:bg-[#b6924f] hover:text-black"
               >
-                {content.login.button}
+                {tc("loginButton")}
               </button>
             </div>
           </section>
@@ -1263,49 +1471,70 @@ export default function TheHeritageDriversLandingPage() {
 
         {!isLoggedIn && (
           <section className="mt-24">
-            <h2 className="text-3xl text-[#f0e3c6]">
-              {content.membershipTitle}
-            </h2>
-            <p className="mt-6 max-w-xl text-[#bcb09a]">
-              {content.membershipText}
-            </p>
+            <EditableText
+              isAdmin={isAdmin}
+              value={tc("membershipTitle")}
+              onSave={(v) => saveContentField("membershipTitle", v)}
+              className="text-3xl text-[#f0e3c6]"
+              as="h2"
+              modifyLabel={tc("modify")}
+              saveLabel={tc("save")}
+              cancelLabel={tc("cancel")}
+            />
+            <EditableText
+              isAdmin={isAdmin}
+              value={tc("membershipText")}
+              onSave={(v) => saveContentField("membershipText", v)}
+              className="mt-6 max-w-xl text-[#bcb09a]"
+              as="p"
+              modifyLabel={tc("modify")}
+              saveLabel={tc("save")}
+              cancelLabel={tc("cancel")}
+            />
 
             <div className="mt-10 max-w-md space-y-4">
-              <input
-                value={enquiryForm.full_name}
-                onChange={(e) =>
-                  setEnquiryForm({
-                    ...enquiryForm,
-                    full_name: e.target.value,
-                  })
+              <EditablePlaceholderField
+                isAdmin={isAdmin}
+                value={tc("enquiryName")}
+                onSave={(v) => saveContentField("enquiryName", v)}
+                fieldValue={enquiryForm.full_name}
+                onFieldChange={(e) =>
+                  setEnquiryForm({ ...enquiryForm, full_name: e.target.value })
                 }
-                placeholder={content.form.name}
                 className="w-full border border-[#342a1a] bg-black p-3 text-[#efe2c5]"
+                modifyLabel={tc("modify")}
+                saveLabel={tc("save")}
+                cancelLabel={tc("cancel")}
               />
 
-              <input
-                type="email"
-                value={enquiryForm.email}
-                onChange={(e) =>
-                  setEnquiryForm({
-                    ...enquiryForm,
-                    email: e.target.value,
-                  })
+              <EditablePlaceholderField
+                isAdmin={isAdmin}
+                value={tc("enquiryEmail")}
+                onSave={(v) => saveContentField("enquiryEmail", v)}
+                fieldValue={enquiryForm.email}
+                onFieldChange={(e) =>
+                  setEnquiryForm({ ...enquiryForm, email: e.target.value })
                 }
-                placeholder={content.form.email}
                 className="w-full border border-[#342a1a] bg-black p-3 text-[#efe2c5]"
+                modifyLabel={tc("modify")}
+                saveLabel={tc("save")}
+                cancelLabel={tc("cancel")}
+                extraProps={{ type: "email" }}
               />
 
-              <textarea
-                value={enquiryForm.interest_note}
-                onChange={(e) =>
-                  setEnquiryForm({
-                    ...enquiryForm,
-                    interest_note: e.target.value,
-                  })
+              <EditablePlaceholderField
+                isAdmin={isAdmin}
+                value={tc("enquiryMessage")}
+                onSave={(v) => saveContentField("enquiryMessage", v)}
+                inputType="textarea"
+                fieldValue={enquiryForm.interest_note}
+                onFieldChange={(e) =>
+                  setEnquiryForm({ ...enquiryForm, interest_note: e.target.value })
                 }
-                placeholder={content.form.message}
                 className="w-full border border-[#342a1a] bg-black p-3 text-[#efe2c5]"
+                modifyLabel={tc("modify")}
+                saveLabel={tc("save")}
+                cancelLabel={tc("cancel")}
               />
 
               <button
@@ -1314,113 +1543,93 @@ export default function TheHeritageDriversLandingPage() {
                 className="flex w-full items-center justify-center gap-2 bg-[#b6924f] px-6 py-3 text-black disabled:cursor-not-allowed disabled:opacity-70"
               >
                 {enquiryLoading && <Loader2 className="h-4 w-4 animate-spin" />}
-                {content.form.submit}
+                <EditableText
+                  isAdmin={isAdmin}
+                  value={tc("enquirySubmit")}
+                  onSave={(v) => saveContentField("enquirySubmit", v)}
+                  as="span"
+                  modifyLabel={tc("modify")}
+                  saveLabel={tc("save")}
+                  cancelLabel={tc("cancel")}
+                />
               </button>
             </div>
           </section>
         )}
 
-        <section className="mt-24" id="members">
-          <div className="rounded-[2rem] border border-[#2c2415] bg-[#0f0f0f] p-8 shadow-2xl shadow-black/30">
-            <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
-              <div>
-                <p className="text-xs uppercase tracking-[0.35em] text-[#b6924f]">
-                  {isLoggedIn ? "Club Events" : content.members.secure}
-                </p>
-                <h2 className="mt-4 text-3xl text-[#f2e6cf]">
-                  {isLoggedIn
-                    ? content.event.sectionTitle
-                    : content.members.title}
-                </h2>
-                <p className="mt-4 max-w-2xl text-[#b8ad96]">
-                  {isLoggedIn
-                    ? content.event.sectionText
-                    : content.members.subtitle}
-                </p>
-              </div>
-
-              <div className="flex gap-3">
-                {!isLoggedIn ? (
-                  <button
-                    onClick={() => {
-                      resetStatus();
-                      setAuthMode("login");
-                      setShowLogin(true);
-                    }}
-                    className="rounded-full border border-[#b6924f] px-5 py-3 text-sm uppercase tracking-[0.22em] text-[#f2e6cf] transition hover:bg-[#b6924f] hover:text-black"
-                  >
-                    {content.login.button}
-                  </button>
-                ) : (
-                  <button
-                    onClick={handleLogout}
-                    className="rounded-full border border-[#3b311d] px-5 py-3 text-sm uppercase tracking-[0.22em] text-[#f2e6cf] transition hover:border-[#b6924f]"
-                  >
-                    {content.members.signOut}
-                  </button>
-                )}
-              </div>
+        {isLoggedIn && !isApproved && (
+          <section className="mt-24">
+            <div className="rounded-[2rem] border border-[#4b2f20] bg-[#16100d] p-8">
+              <EditableText
+                isAdmin={isAdmin}
+                value={tc("approvalPendingTitle")}
+                onSave={(v) => saveContentField("approvalPendingTitle", v)}
+                className="text-2xl text-[#f2e6cf]"
+                as="h2"
+                modifyLabel={tc("modify")}
+                saveLabel={tc("save")}
+                cancelLabel={tc("cancel")}
+              />
+              <EditableText
+                isAdmin={isAdmin}
+                value={tc("approvalPendingText")}
+                onSave={(v) => saveContentField("approvalPendingText", v)}
+                className="mt-4 max-w-2xl text-[#cfbea3]"
+                as="p"
+                modifyLabel={tc("modify")}
+                saveLabel={tc("save")}
+                cancelLabel={tc("cancel")}
+              />
             </div>
+          </section>
+        )}
 
-            {initializing ? (
-              <div className="mt-8 flex items-center gap-3 text-[#b8ad96]">
-                <Loader2 className="h-5 w-5 animate-spin text-[#b6924f]" />
-                <span>Loading member access...</span>
+        {hasMemberAccess && (
+          <section className="mt-24" id="members">
+            <div className="rounded-[2rem] border border-[#2c2415] bg-[#0f0f0f] p-8 shadow-2xl shadow-black/30">
+              <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+                <div>
+                  <p className="text-xs uppercase tracking-[0.35em] text-[#b6924f]">Club Events</p>
+                  <EditableText
+                    isAdmin={isAdmin}
+                    value={tc("eventsSectionTitle")}
+                    onSave={(v) => saveContentField("eventsSectionTitle", v)}
+                    className="mt-4 text-3xl text-[#f2e6cf]"
+                    as="h2"
+                    modifyLabel={tc("modify")}
+                    saveLabel={tc("save")}
+                    cancelLabel={tc("cancel")}
+                  />
+                  <EditableText
+                    isAdmin={isAdmin}
+                    value={tc("eventsSectionText")}
+                    onSave={(v) => saveContentField("eventsSectionText", v)}
+                    className="mt-4 max-w-2xl text-[#b8ad96]"
+                    as="p"
+                    modifyLabel={tc("modify")}
+                    saveLabel={tc("save")}
+                    cancelLabel={tc("cancel")}
+                  />
+                </div>
+
+                <button
+                  onClick={handleLogout}
+                  className="rounded-full border border-[#3b311d] px-5 py-3 text-sm uppercase tracking-[0.22em] text-[#f2e6cf] transition hover:border-[#b6924f]"
+                >
+                  {lang === "en" ? "Sign Out" : "Abmelden"}
+                </button>
               </div>
-            ) : !isLoggedIn ? (
-              <div className="mt-8 grid gap-6 lg:grid-cols-3">
-                {[
-                  {
-                    icon: Shield,
-                    title: content.members.preview,
-                    text: content.members.intro,
-                  },
-                  {
-                    icon: Calendar,
-                    title: content.members.eventTitle,
-                    text: content.members.eventText,
-                  },
-                  {
-                    icon: Wrench,
-                    title: content.members.atelierTitle,
-                    text: content.members.atelierText,
-                  },
-                ].map((item) => {
-                  const Icon = item.icon;
-                  return (
-                    <div
-                      key={item.title}
-                      className="rounded-[1.5rem] border border-[#2d2416] bg-[#131313] p-6"
-                    >
-                      <Icon className="h-5 w-5 text-[#b6924f]" />
-                      <h3 className="mt-4 text-lg text-[#f2e6cf]">
-                        {item.title}
-                      </h3>
-                      <p className="mt-3 text-sm leading-6 text-[#a99c83]">
-                        {item.text}
-                      </p>
-                    </div>
-                  );
-                })}
-              </div>
-            ) : (
+
               <div className="mt-8 grid gap-6">
                 <div className="rounded-[1.75rem] border border-[#2d2416] bg-[#131313] p-8">
                   {eventsLoading ? (
-                    <p className="text-sm text-[#b8ad96]">
-                      {content.event.loading}
-                    </p>
+                    <p className="text-sm text-[#b8ad96]">{tc("eventLoading")}</p>
                   ) : events.length === 0 ? (
-                    <p className="text-sm text-[#b8ad96]">
-                      {content.event.empty}
-                    </p>
+                    <p className="text-sm text-[#b8ad96]">{tc("eventEmpty")}</p>
                   ) : (
                     <div className="grid gap-6 lg:grid-cols-2">
                       {events.map((event) => (
-                        <div
-                          key={event.id}
-                          className="rounded-[1.5rem] border border-[#2d2416] bg-[#0f0f0f] p-6"
-                        >
+                        <div key={event.id} className="rounded-[1.5rem] border border-[#2d2416] bg-[#0f0f0f] p-6">
                           {event.image_url && (
                             <img
                               src={event.image_url}
@@ -1429,35 +1638,24 @@ export default function TheHeritageDriversLandingPage() {
                             />
                           )}
 
-                          <p className="text-xs uppercase tracking-[0.3em] text-[#b6924f]">
-                            {content.event.upcoming}
-                          </p>
-
-                          <h4 className="mt-3 text-xl text-[#f2e6cf]">
-                            {event.title}
-                          </h4>
-
+                          <p className="text-xs uppercase tracking-[0.3em] text-[#b6924f]">{tc("eventUpcoming")}</p>
+                          <h4 className="mt-3 text-xl text-[#f2e6cf]">{event.title}</h4>
                           <p className="mt-2 text-sm text-[#a99c83]">
                             {event.event_date}
                             {event.location ? ` · ${event.location}` : ""}
                           </p>
 
                           {event.short_description && (
-                            <p className="mt-4 text-sm leading-6 text-[#a99c83]">
-                              {event.short_description}
-                            </p>
+                            <p className="mt-4 text-sm leading-6 text-[#a99c83]">{event.short_description}</p>
                           )}
 
                           {event.long_description && (
-                            <p className="mt-4 text-sm leading-6 text-[#8f836d]">
-                              {event.long_description}
-                            </p>
+                            <p className="mt-4 text-sm leading-6 text-[#8f836d]">{event.long_description}</p>
                           )}
 
                           {event.max_participants && (
                             <p className="mt-4 text-sm text-[#b8ad96]">
-                              {content.event.maxParticipantsLabel}:{" "}
-                              {event.max_participants}
+                              {tc("eventMaxParticipantsLabel")}: {event.max_participants}
                             </p>
                           )}
 
@@ -1470,8 +1668,7 @@ export default function TheHeritageDriversLandingPage() {
                                 className="inline-flex items-center gap-2 text-sm text-[#d7bf8a] underline underline-offset-4 hover:text-white"
                               >
                                 <Paperclip className="h-4 w-4" />
-                                {event.attachment_name ||
-                                  content.event.openAttachment}
+                                {event.attachment_name || tc("eventOpenAttachment")}
                               </a>
                             </div>
                           )}
@@ -1481,19 +1678,11 @@ export default function TheHeritageDriversLandingPage() {
                               id={`join-${event.id}`}
                               type="checkbox"
                               checked={isRegisteredForEvent(event.id)}
-                              onChange={(e) =>
-                                handleToggleParticipation(
-                                  event.id,
-                                  e.target.checked
-                                )
-                              }
+                              onChange={(e) => handleToggleParticipation(event.id, e.target.checked)}
                               className="h-4 w-4 accent-[#b6924f]"
                             />
-                            <label
-                              htmlFor={`join-${event.id}`}
-                              className="text-sm text-[#e8dcc0]"
-                            >
-                              {content.event.attend}
+                            <label htmlFor={`join-${event.id}`} className="text-sm text-[#e8dcc0]">
+                              {tc("eventAttend")}
                             </label>
                           </div>
 
@@ -1503,14 +1692,14 @@ export default function TheHeritageDriversLandingPage() {
                                 onClick={() => handleEditEvent(event)}
                                 className="rounded-full border border-[#b6924f] px-4 py-2 text-xs uppercase tracking-[0.18em] text-[#f2e6cf] transition hover:bg-[#b6924f] hover:text-black"
                               >
-                                {content.event.modify}
+                                {tc("eventModify")}
                               </button>
 
                               <button
                                 onClick={() => handleViewParticipants(event.id)}
                                 className="rounded-full border border-[#3b311d] px-4 py-2 text-xs uppercase tracking-[0.18em] text-[#f2e6cf] transition hover:border-[#b6924f]"
                               >
-                                {content.event.participants}
+                                {tc("eventParticipants")}
                               </button>
 
                               <button
@@ -1518,7 +1707,7 @@ export default function TheHeritageDriversLandingPage() {
                                 className="inline-flex items-center gap-2 rounded-full border border-[#6a2f24] px-4 py-2 text-xs uppercase tracking-[0.18em] text-[#f2e6cf] transition hover:border-[#b74b39] hover:text-white"
                               >
                                 <Trash2 className="h-3.5 w-3.5" />
-                                {content.event.delete}
+                                {tc("eventDelete")}
                               </button>
                             </div>
                           )}
@@ -1533,7 +1722,7 @@ export default function TheHeritageDriversLandingPage() {
                         onClick={resetEventEditor}
                         className="rounded-full bg-[#b6924f] px-5 py-3 text-sm uppercase tracking-[0.22em] text-black transition hover:bg-[#c6a45d]"
                       >
-                        {content.event.create}
+                        {tc("eventCreate")}
                       </button>
                     </div>
                   )}
@@ -1541,124 +1730,76 @@ export default function TheHeritageDriversLandingPage() {
                   {isAdmin && (
                     <div className="mt-8 rounded-[1.5rem] border border-[#2d2416] bg-[#0f0f0f] p-6">
                       <p className="text-xs uppercase tracking-[0.3em] text-[#b6924f]">
-                        {editingEventId
-                          ? content.event.modify
-                          : content.event.create}
+                        {editingEventId ? tc("eventModify") : tc("eventCreate")}
                       </p>
 
                       <div className="mt-6 grid gap-4 lg:grid-cols-2">
                         <input
                           value={eventForm.title}
-                          onChange={(e) =>
-                            setEventForm({
-                              ...eventForm,
-                              title: e.target.value,
-                            })
-                          }
-                          placeholder={content.event.title}
+                          onChange={(e) => setEventForm({ ...eventForm, title: e.target.value })}
+                          placeholder={tc("eventTitleLabel")}
                           className="w-full rounded-2xl border border-[#342a1a] bg-black/60 p-4 text-[#efe2c5] outline-none placeholder:text-[#796c56]"
                         />
 
                         <input
                           value={eventForm.event_date}
-                          onChange={(e) =>
-                            setEventForm({
-                              ...eventForm,
-                              event_date: e.target.value,
-                            })
-                          }
+                          onChange={(e) => setEventForm({ ...eventForm, event_date: e.target.value })}
                           type="date"
                           className="w-full rounded-2xl border border-[#342a1a] bg-black/60 p-4 text-[#efe2c5] outline-none"
                         />
 
                         <input
                           value={eventForm.location}
-                          onChange={(e) =>
-                            setEventForm({
-                              ...eventForm,
-                              location: e.target.value,
-                            })
-                          }
-                          placeholder={content.event.location}
+                          onChange={(e) => setEventForm({ ...eventForm, location: e.target.value })}
+                          placeholder={tc("eventLocationLabel")}
                           className="w-full rounded-2xl border border-[#342a1a] bg-black/60 p-4 text-[#efe2c5] outline-none placeholder:text-[#796c56]"
                         />
 
                         <input
                           value={eventForm.max_participants}
-                          onChange={(e) =>
-                            setEventForm({
-                              ...eventForm,
-                              max_participants: e.target.value,
-                            })
-                          }
+                          onChange={(e) => setEventForm({ ...eventForm, max_participants: e.target.value })}
                           type="number"
-                          placeholder={content.event.maxParticipants}
+                          placeholder={tc("eventMaxParticipantsLabel")}
                           className="w-full rounded-2xl border border-[#342a1a] bg-black/60 p-4 text-[#efe2c5] outline-none placeholder:text-[#796c56]"
                         />
 
                         <input
                           value={eventForm.short_description}
-                          onChange={(e) =>
-                            setEventForm({
-                              ...eventForm,
-                              short_description: e.target.value,
-                            })
-                          }
-                          placeholder={content.event.shortDescription}
+                          onChange={(e) => setEventForm({ ...eventForm, short_description: e.target.value })}
+                          placeholder={tc("eventShortDescriptionLabel")}
                           className="lg:col-span-2 w-full rounded-2xl border border-[#342a1a] bg-black/60 p-4 text-[#efe2c5] outline-none placeholder:text-[#796c56]"
                         />
 
                         <textarea
                           value={eventForm.long_description}
-                          onChange={(e) =>
-                            setEventForm({
-                              ...eventForm,
-                              long_description: e.target.value,
-                            })
-                          }
-                          placeholder={content.event.longDescription}
+                          onChange={(e) => setEventForm({ ...eventForm, long_description: e.target.value })}
+                          placeholder={tc("eventLongDescriptionLabel")}
                           className="lg:col-span-2 w-full rounded-2xl border border-[#342a1a] bg-black/60 p-4 text-[#efe2c5] outline-none placeholder:text-[#796c56]"
                         />
 
                         <div className="lg:col-span-2 rounded-2xl border border-[#342a1a] bg-black/60 p-4">
                           <label className="mb-3 flex items-center gap-2 text-sm text-[#efe2c5]">
                             <ImageIcon className="h-4 w-4 text-[#b6924f]" />
-                            {content.event.image}
+                            {tc("eventImageLabel")}
                           </label>
                           <input
                             type="file"
                             accept="image/*"
-                            onChange={(e) =>
-                              setEventImageFile(e.target.files?.[0] || null)
-                            }
+                            onChange={(e) => setEventImageFile(e.target.files?.[0] || null)}
                             className="w-full text-[#efe2c5] outline-none"
                           />
-                          {eventForm.image_url && !eventImageFile && (
-                            <p className="mt-2 text-xs text-[#9e8f74]">
-                              Existing image kept until replaced.
-                            </p>
-                          )}
                         </div>
 
                         <div className="lg:col-span-2 rounded-2xl border border-[#342a1a] bg-black/60 p-4">
                           <label className="mb-3 flex items-center gap-2 text-sm text-[#efe2c5]">
                             <Paperclip className="h-4 w-4 text-[#b6924f]" />
-                            {content.event.attachment}
+                            {tc("eventAttachmentLabel")}
                           </label>
                           <input
                             type="file"
-                            onChange={(e) =>
-                              setEventAttachmentFile(
-                                e.target.files?.[0] || null
-                              )
-                            }
+                            onChange={(e) => setEventAttachmentFile(e.target.files?.[0] || null)}
                             className="w-full text-[#efe2c5] outline-none"
                           />
-                          {eventForm.attachment_url && !eventAttachmentFile && (
-                            <p className="mt-2 text-xs text-[#9e8f74]">
-                              Existing attachment kept until replaced.
-                            </p>
-                          )}
                         </div>
                       </div>
 
@@ -1668,12 +1809,8 @@ export default function TheHeritageDriversLandingPage() {
                           disabled={eventSaving}
                           className="inline-flex items-center gap-2 rounded-full bg-[#b6924f] px-5 py-3 text-sm uppercase tracking-[0.22em] text-black transition hover:bg-[#c6a45d] disabled:cursor-not-allowed disabled:opacity-70"
                         >
-                          {eventSaving && (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          )}
-                          {editingEventId
-                            ? content.event.saveChanges
-                            : content.event.create}
+                          {eventSaving && <Loader2 className="h-4 w-4 animate-spin" />}
+                          {editingEventId ? tc("eventSaveChanges") : tc("eventCreate")}
                         </button>
 
                         {editingEventId && (
@@ -1681,7 +1818,7 @@ export default function TheHeritageDriversLandingPage() {
                             onClick={resetEventEditor}
                             className="rounded-full border border-[#b6924f] px-5 py-3 text-sm uppercase tracking-[0.22em] text-[#f2e6cf] transition hover:bg-[#b6924f] hover:text-black"
                           >
-                            {content.event.cancelEdit}
+                            {tc("eventCancelEdit")}
                           </button>
                         )}
                       </div>
@@ -1691,22 +1828,18 @@ export default function TheHeritageDriversLandingPage() {
                   {participantsView && (
                     <div className="mt-8 rounded-[1.5rem] border border-[#2d2416] bg-[#0f0f0f] p-6">
                       <div className="flex items-center justify-between gap-4">
-                        <p className="text-xs uppercase tracking-[0.3em] text-[#b6924f]">
-                          {content.event.participants}
-                        </p>
+                        <p className="text-xs uppercase tracking-[0.3em] text-[#b6924f]">{tc("eventParticipants")}</p>
                         <button
                           onClick={() => setParticipantsView(null)}
                           className="rounded-full border border-[#3b311d] px-4 py-2 text-xs uppercase tracking-[0.18em] text-[#f2e6cf] transition hover:border-[#b6924f]"
                         >
-                          {content.event.close}
+                          {tc("eventClose")}
                         </button>
                       </div>
 
                       <div className="mt-6 space-y-3">
                         {participantsView.rows.length === 0 ? (
-                          <p className="text-sm text-[#b8ad96]">
-                            {content.event.noParticipants}
-                          </p>
+                          <p className="text-sm text-[#b8ad96]">{tc("eventNoParticipants")}</p>
                         ) : (
                           participantsView.rows.map((row) => (
                             <div
@@ -1725,20 +1858,32 @@ export default function TheHeritageDriversLandingPage() {
                 <div className="rounded-[1.75rem] border border-[#2d2416] bg-[#131313] p-8">
                   <div className="flex items-center gap-3">
                     <Save className="h-5 w-5 text-[#b6924f]" />
-                    <h3 className="text-xl text-[#f2e6cf]">
-                      {content.account.title}
-                    </h3>
+                    <EditableText
+                      isAdmin={isAdmin}
+                      value={tc("accountTitle")}
+                      onSave={(v) => saveContentField("accountTitle", v)}
+                      className="text-xl text-[#f2e6cf]"
+                      as="h3"
+                      modifyLabel={tc("modify")}
+                      saveLabel={tc("save")}
+                      cancelLabel={tc("cancel")}
+                    />
                   </div>
 
-                  <p className="mt-3 text-sm leading-6 text-[#a99c83]">
-                    {content.account.subtitle}
-                  </p>
+                  <EditableText
+                    isAdmin={isAdmin}
+                    value={tc("accountSubtitle")}
+                    onSave={(v) => saveContentField("accountSubtitle", v)}
+                    className="mt-3 text-sm leading-6 text-[#a99c83]"
+                    as="p"
+                    modifyLabel={tc("modify")}
+                    saveLabel={tc("save")}
+                    cancelLabel={tc("cancel")}
+                  />
 
                   <div className="mt-6 grid gap-4 lg:grid-cols-2">
                     <div className="rounded-[1.25rem] border border-[#2d2416] bg-[#0f0f0f] p-5">
-                      <label className="mb-2 block text-sm text-[#d9ccb1]">
-                        {content.account.fullName}
-                      </label>
+                      <label className="mb-2 block text-sm text-[#d9ccb1]">{tc("accountDisplayName")}</label>
                       <input
                         value={accountName}
                         onChange={(e) => setAccountName(e.target.value)}
@@ -1749,14 +1894,12 @@ export default function TheHeritageDriversLandingPage() {
                         disabled={accountLoading}
                         className="mt-4 rounded-full border border-[#b6924f] px-4 py-2 text-xs uppercase tracking-[0.18em] text-[#f2e6cf] transition hover:bg-[#b6924f] hover:text-black disabled:cursor-not-allowed disabled:opacity-70"
                       >
-                        {content.account.saveName}
+                        {tc("accountSaveName")}
                       </button>
                     </div>
 
                     <div className="rounded-[1.25rem] border border-[#2d2416] bg-[#0f0f0f] p-5">
-                      <label className="mb-2 block text-sm text-[#d9ccb1]">
-                        {content.account.email}
-                      </label>
+                      <label className="mb-2 block text-sm text-[#d9ccb1]">{tc("accountEmail")}</label>
                       <input
                         type="email"
                         value={accountEmail}
@@ -1768,36 +1911,28 @@ export default function TheHeritageDriversLandingPage() {
                         disabled={accountLoading}
                         className="mt-4 rounded-full border border-[#b6924f] px-4 py-2 text-xs uppercase tracking-[0.18em] text-[#f2e6cf] transition hover:bg-[#b6924f] hover:text-black disabled:cursor-not-allowed disabled:opacity-70"
                       >
-                        {content.account.saveEmail}
+                        {tc("accountSaveEmail")}
                       </button>
                     </div>
 
                     <div className="rounded-[1.25rem] border border-[#2d2416] bg-[#0f0f0f] p-5 lg:col-span-2">
                       <div className="grid gap-4 lg:grid-cols-2">
                         <div>
-                          <label className="mb-2 block text-sm text-[#d9ccb1]">
-                            {content.account.newPassword}
-                          </label>
+                          <label className="mb-2 block text-sm text-[#d9ccb1]">{tc("accountNewPassword")}</label>
                           <input
                             type="password"
                             value={accountPassword}
-                            onChange={(e) =>
-                              setAccountPassword(e.target.value)
-                            }
+                            onChange={(e) => setAccountPassword(e.target.value)}
                             className="w-full rounded-2xl border border-[#342a1a] bg-black/60 p-4 text-[#efe2c5] outline-none"
                           />
                         </div>
 
                         <div>
-                          <label className="mb-2 block text-sm text-[#d9ccb1]">
-                            {content.account.confirmPassword}
-                          </label>
+                          <label className="mb-2 block text-sm text-[#d9ccb1]">{tc("accountConfirmPassword")}</label>
                           <input
                             type="password"
                             value={accountPasswordConfirm}
-                            onChange={(e) =>
-                              setAccountPasswordConfirm(e.target.value)
-                            }
+                            onChange={(e) => setAccountPasswordConfirm(e.target.value)}
                             className="w-full rounded-2xl border border-[#342a1a] bg-black/60 p-4 text-[#efe2c5] outline-none"
                           />
                         </div>
@@ -1808,37 +1943,31 @@ export default function TheHeritageDriversLandingPage() {
                         disabled={accountLoading}
                         className="mt-4 rounded-full border border-[#b6924f] px-4 py-2 text-xs uppercase tracking-[0.18em] text-[#f2e6cf] transition hover:bg-[#b6924f] hover:text-black disabled:cursor-not-allowed disabled:opacity-70"
                       >
-                        {content.account.savePassword}
+                        {tc("accountSavePassword")}
                       </button>
                     </div>
                   </div>
                 </div>
               </div>
-            )}
-          </div>
-        </section>
+            </div>
+          </section>
+        )}
 
         {showLogin && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4 backdrop-blur-sm">
             <div className="w-full max-w-md rounded-[2rem] border border-[#3a2f1b] bg-[#0d0d0d] p-8 shadow-2xl shadow-black/40">
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <p className="text-xs uppercase tracking-[0.35em] text-[#b6924f]">
-                    The Heritage Drivers
-                  </p>
-                  <h3 className="mt-3 text-2xl text-[#f0e3c6]">
-                    {content.login.title}
-                  </h3>
-                  <p className="mt-3 text-sm leading-6 text-[#ad9f86]">
-                    {content.login.subtitle}
-                  </p>
+                  <p className="text-xs uppercase tracking-[0.35em] text-[#b6924f]">The Heritage Drivers</p>
+                  <h3 className="mt-3 text-2xl text-[#f0e3c6]">{tc("loginTitle")}</h3>
+                  <p className="mt-3 text-sm leading-6 text-[#ad9f86]">{tc("loginSubtitle")}</p>
                 </div>
 
                 <button
                   onClick={() => setShowLogin(false)}
                   className="rounded-full border border-[#332818] px-3 py-1 text-xs uppercase tracking-[0.2em] text-[#b7aa90] hover:border-[#b6924f] hover:text-white"
                 >
-                  {content.login.close}
+                  {tc("loginClose")}
                 </button>
               </div>
 
@@ -1849,7 +1978,7 @@ export default function TheHeritageDriversLandingPage() {
                     <input
                       value={fullName}
                       onChange={(e) => setFullName(e.target.value)}
-                      placeholder={content.login.fullName}
+                      placeholder={tc("loginFullName")}
                       className="w-full rounded-2xl border border-[#342a1a] bg-black/60 py-4 pl-11 pr-4 text-[#efe2c5] outline-none placeholder:text-[#796c56] focus:border-[#b6924f]"
                     />
                   </div>
@@ -1861,7 +1990,7 @@ export default function TheHeritageDriversLandingPage() {
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder={content.login.email}
+                    placeholder={tc("loginEmail")}
                     className="w-full rounded-2xl border border-[#342a1a] bg-black/60 py-4 pl-11 pr-4 text-[#efe2c5] outline-none placeholder:text-[#796c56] focus:border-[#b6924f]"
                   />
                 </div>
@@ -1872,7 +2001,7 @@ export default function TheHeritageDriversLandingPage() {
                     type="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    placeholder={content.login.password}
+                    placeholder={tc("loginPassword")}
                     className="w-full rounded-2xl border border-[#342a1a] bg-black/60 py-4 pl-11 pr-4 text-[#efe2c5] outline-none placeholder:text-[#796c56] focus:border-[#b6924f]"
                   />
                 </div>
@@ -1883,9 +2012,7 @@ export default function TheHeritageDriversLandingPage() {
                   className="flex w-full items-center justify-center gap-2 rounded-full bg-[#b6924f] px-6 py-4 text-sm uppercase tracking-[0.28em] text-black transition hover:bg-[#c6a45d] disabled:cursor-not-allowed disabled:opacity-70"
                 >
                   {loading && <Loader2 className="h-4 w-4 animate-spin" />}
-                  {authMode === "login"
-                    ? content.login.submit
-                    : content.login.signUp}
+                  {authMode === "login" ? tc("loginSubmit") : tc("signupSubmit")}
                 </button>
 
                 <button
@@ -1895,17 +2022,11 @@ export default function TheHeritageDriversLandingPage() {
                   }}
                   className="w-full text-sm text-[#cdbd9f] underline underline-offset-4 hover:text-white"
                 >
-                  {authMode === "login"
-                    ? content.login.switchToSignup
-                    : content.login.switchToLogin}
+                  {authMode === "login" ? tc("switchToSignup") : tc("switchToLogin")}
                 </button>
 
-                <p className="text-center text-xs text-[#7f735c]">
-                  {content.login.forgot}
-                </p>
-                <p className="text-center text-xs uppercase tracking-[0.25em] text-[#7f735c]">
-                  {content.login.note}
-                </p>
+                <p className="text-center text-xs text-[#7f735c]">{tc("loginForgot")}</p>
+                <p className="text-center text-xs uppercase tracking-[0.25em] text-[#7f735c]">{tc("loginNote")}</p>
               </div>
             </div>
           </div>
