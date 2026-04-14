@@ -146,6 +146,8 @@ const fallbackContent = {
     adminNew: "New",
     adminSaveRole: "Save Role",
     adminRole: "Role",
+    adminCreateProfile: "Create Profile",
+    adminMissingProfile: "No member profile yet",
   },
   de: {
     navSociety: "Gesellschaft",
@@ -251,6 +253,8 @@ const fallbackContent = {
     adminNew: "Neu",
     adminSaveRole: "Rolle speichern",
     adminRole: "Rolle",
+    adminCreateProfile: "Profil erstellen",
+    adminMissingProfile: "Noch kein Mitgliederprofil",
   },
 };
 
@@ -287,6 +291,7 @@ const uiMessages = {
     enquiryReviewedSuccess: "Enquiry marked as reviewed.",
     roleUpdateSuccess: "Member role updated successfully.",
     contentUpdateSuccess: "Content updated successfully.",
+    createProfileSuccess: "Profile created successfully.",
   },
   de: {
     loginSuccess: "Anmeldung erfolgreich.",
@@ -321,6 +326,7 @@ const uiMessages = {
     enquiryReviewedSuccess: "Anfrage als geprüft markiert.",
     roleUpdateSuccess: "Mitgliedsrolle erfolgreich aktualisiert.",
     contentUpdateSuccess: "Inhalt erfolgreich aktualisiert.",
+    createProfileSuccess: "Profil erfolgreich erstellt.",
   },
 };
 
@@ -568,20 +574,13 @@ export default function TheHeritageDriversLandingPage() {
   const [enquiriesLoading, setEnquiriesLoading] = useState(false);
   const [memberProfilesAdmin, setMemberProfilesAdmin] = useState([]);
   const [memberRoleDrafts, setMemberRoleDrafts] = useState({});
+  const [authUsersAdmin, setAuthUsersAdmin] = useState([]);
 
   const messages = uiMessages[lang];
   const isLoggedIn = !!session;
   const isAdmin = profile?.role === "admin";
   const isApproved = profile?.approved === true;
   const hasMemberAccess = isLoggedIn && (isApproved || isAdmin);
-  
-console.log("CURRENT SESSION EMAIL:", session?.user?.email);
-console.log("CURRENT SESSION ID:", session?.user?.id);
-console.log("PROFILE:", profile);
-console.log("IS ADMIN:", isAdmin);
-console.log("IS APPROVED:", isApproved);
-console.log("HAS MEMBER ACCESS:", hasMemberAccess);
-
 
   const tc = (key) => {
     const saved = websiteContent?.[lang]?.[key];
@@ -614,6 +613,7 @@ console.log("HAS MEMBER ACCESS:", hasMemberAccess);
     setEnquiries([]);
     setMemberProfilesAdmin([]);
     setMemberRoleDrafts({});
+    setAuthUsersAdmin([]);
   };
 
   const syncAccountFields = (nextProfile, nextSession) => {
@@ -668,7 +668,10 @@ console.log("HAS MEMBER ACCESS:", hasMemberAccess);
   };
 
   const loadProfile = async (userId) => {
-    if (!supabase || !userId) return null;
+    if (!supabase || !userId) {
+      setProfileLoaded(true);
+      return null;
+    }
 
     const { data, error } = await supabase
       .from("member_profiles")
@@ -739,6 +742,19 @@ console.log("HAS MEMBER ACCESS:", hasMemberAccess);
     }
   };
 
+  const loadAuthUsersAdmin = async () => {
+    if (!supabase) return;
+
+    const { data, error } = await supabase
+      .from("auth_users_overview")
+      .select("id, email, created_at")
+      .order("created_at", { ascending: false });
+
+    if (!error && data) {
+      setAuthUsersAdmin(data);
+    }
+  };
+
   const loadAppData = async (currentSession) => {
     if (!currentSession?.user) return;
 
@@ -750,10 +766,12 @@ console.log("HAS MEMBER ACCESS:", hasMemberAccess);
     if (loadedProfile?.role === "admin") {
       await loadEnquiries();
       await loadMemberProfilesAdmin();
+      await loadAuthUsersAdmin();
     } else {
       setEnquiries([]);
       setMemberProfilesAdmin([]);
       setMemberRoleDrafts({});
+      setAuthUsersAdmin([]);
     }
   };
 
@@ -1313,6 +1331,33 @@ console.log("HAS MEMBER ACCESS:", hasMemberAccess);
     await loadMemberProfilesAdmin();
   };
 
+  const handleCreateProfile = async (userId, userEmail) => {
+    resetStatus();
+    if (!supabase || !session?.user || !isAdmin) return;
+
+    const defaultName = userEmail
+      ? userEmail.split("@")[0].replace(/[._-]/g, " ")
+      : "Member";
+
+    const selectedRole = memberRoleDrafts[userId] || "member";
+
+    const { error } = await supabase.from("member_profiles").upsert({
+      id: userId,
+      full_name: defaultName,
+      role: selectedRole,
+      approved: false,
+    });
+
+    if (error) {
+      setStatus({ type: "error", message: error.message });
+      return;
+    }
+
+    setStatus({ type: "success", message: messages.createProfileSuccess });
+    await loadMemberProfilesAdmin();
+    await loadAuthUsersAdmin();
+  };
+
   const handleMarkEnquiryReviewed = async (enquiryId) => {
     resetStatus();
     if (!supabase || !session?.user || !isAdmin) return;
@@ -1355,6 +1400,10 @@ console.log("HAS MEMBER ACCESS:", hasMemberAccess);
         <span>{status.message}</span>
       </div>
     ) : null;
+
+  const missingProfileUsers = authUsersAdmin.filter(
+    (authUser) => !memberProfilesAdmin.some((member) => member.id === authUser.id)
+  );
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-[#e8dcc0]">
@@ -1686,17 +1735,7 @@ console.log("HAS MEMBER ACCESS:", hasMemberAccess);
             </div>
           </section>
         )}
-{isLoggedIn && (
-  <div className="mb-8 rounded-2xl border border-[#4b2f20] bg-[#16100d] p-4 text-sm text-[#cfbea3]">
-    <div>Session email: {session?.user?.email || "none"}</div>
-    <div>Session id: {session?.user?.id || "none"}</div>
-    <div>Profile id: {profile?.id || "none"}</div>
-    <div>Role: {profile?.role || "none"}</div>
-    <div>Approved: {String(profile?.approved)}</div>
-    <div>Profile loaded: {String(profileLoaded)}</div>
-    <div>Has member access: {String(hasMemberAccess)}</div>
-  </div>
-)}
+
         {isLoggedIn && profileLoaded && !hasMemberAccess && (
           <section className="mt-24">
             <div className="rounded-[2rem] border border-[#4b2f20] bg-[#16100d] p-8">
@@ -2189,6 +2228,52 @@ console.log("HAS MEMBER ACCESS:", hasMemberAccess);
                         <h4 className="text-lg text-[#f2e6cf]">
                           {tc("adminMembers")}
                         </h4>
+
+                        {missingProfileUsers.length > 0 && (
+                          <div className="mt-4 space-y-4">
+                            {missingProfileUsers.map((authUser) => (
+                              <div
+                                key={`missing-${authUser.id}`}
+                                className="rounded-xl border border-[#5a4120] bg-[#17120d] p-4"
+                              >
+                                <p className="text-sm text-[#f2e6cf]">
+                                  {authUser.email}
+                                </p>
+                                <p className="mt-2 text-xs uppercase tracking-[0.2em] text-[#b6924f]">
+                                  {tc("adminMissingProfile")}
+                                </p>
+
+                                <div className="mt-4 space-y-3">
+                                  <label className="block text-[11px] uppercase tracking-[0.18em] text-[#8f836d]">
+                                    {tc("adminRole")}
+                                  </label>
+                                  <select
+                                    value={memberRoleDrafts[authUser.id] || "member"}
+                                    onChange={(e) =>
+                                      setMemberRoleDrafts((prev) => ({
+                                        ...prev,
+                                        [authUser.id]: e.target.value,
+                                      }))
+                                    }
+                                    className="w-full rounded-2xl border border-[#342a1a] bg-black/60 p-3 text-[#efe2c5] outline-none"
+                                  >
+                                    <option value="member">member</option>
+                                    <option value="admin">admin</option>
+                                  </select>
+
+                                  <button
+                                    onClick={() =>
+                                      handleCreateProfile(authUser.id, authUser.email)
+                                    }
+                                    className="rounded-full bg-[#b6924f] px-4 py-2 text-xs uppercase tracking-[0.18em] text-black transition hover:bg-[#c6a45d]"
+                                  >
+                                    {tc("adminCreateProfile")}
+                                  </button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
 
                         {memberProfilesAdmin.length === 0 ? (
                           <p className="mt-4 text-sm text-[#b8ad96]">
