@@ -7,7 +7,6 @@ import {
   Lock,
   LogOut,
   Mail,
-  Shield,
   User,
   Wrench,
   Loader2,
@@ -86,17 +85,14 @@ const fallbackContent = {
     membersIntro:
       "Your account is protected by Supabase authentication. Member data, events and protected content can be maintained securely.",
     eventCardTitle: "Upcoming Drive",
-    eventCardText: "Season Opening · 19.04.2026 · Private confirmation required.",
+    eventCardText:
+      "Season Opening · 19.04.2026 · Private confirmation required.",
     notesTitle: "Members Notes",
     notesText:
       "Discreet updates, club notices and society correspondence.",
     atelierTitle: "Technical Circle",
     atelierText:
       "Selected workshop evenings, heritage discussions and mechanical exchange.",
-    membersPreview: "Preview access",
-    membersAreaTitle: "Private Members Area",
-    membersAreaSubtitle:
-      "A discreet section for members, events and society information.",
     accountTitle: "Account Settings",
     accountSubtitle: "Maintain your member details and access credentials.",
     accountDisplayName: "Display name",
@@ -130,12 +126,26 @@ const fallbackContent = {
     eventUpcoming: "Upcoming Event",
     eventOpenAttachment: "Open attachment",
     eventDelete: "Delete Event",
-    approvalPendingTitle: "Membership Pending Approval",
+    approvalPendingTitle: "Membership Awaiting Approval",
     approvalPendingText:
-      "Your account exists, but access to the private members area is released manually. Please await confirmation.",
+      "Your account has been created successfully. Access to the private members area is granted manually once your membership has been reviewed and approved.",
     modify: "Modify",
     save: "Save",
     cancel: "Cancel",
+    adminTitle: "Admin Panel",
+    adminSubtitle: "Review enquiries and approve registered members.",
+    adminEnquiries: "Membership Enquiries",
+    adminMembers: "Registered Members",
+    adminNoEnquiries: "No enquiries available.",
+    adminNoMembers: "No members found.",
+    adminApprove: "Approve Member",
+    adminMarkReviewed: "Mark Reviewed",
+    adminApproved: "Approved",
+    adminPending: "Pending",
+    adminReviewed: "Reviewed",
+    adminNew: "New",
+    adminSaveRole: "Save Role",
+    adminRole: "Role",
   },
   de: {
     navSociety: "Gesellschaft",
@@ -186,10 +196,6 @@ const fallbackContent = {
     atelierTitle: "Technischer Zirkel",
     atelierText:
       "Ausgewählte Werkstattabende, Heritage-Gespräche und mechanischer Austausch.",
-    membersPreview: "Vorschauzugang",
-    membersAreaTitle: "Privater Mitgliederbereich",
-    membersAreaSubtitle:
-      "Ein diskreter Bereich für Mitglieder, Veranstaltungen und Gesellschaftsinformationen.",
     accountTitle: "Kontoeinstellungen",
     accountSubtitle:
       "Pflegen Sie Ihre Mitgliederdaten und Zugangsinformationen.",
@@ -224,12 +230,27 @@ const fallbackContent = {
     eventUpcoming: "Anstehendes Event",
     eventOpenAttachment: "Anhang öffnen",
     eventDelete: "Event löschen",
-    approvalPendingTitle: "Mitgliedschaft wartet auf Freigabe",
+    approvalPendingTitle: "Mitgliedschaft in Prüfung",
     approvalPendingText:
-      "Ihr Konto besteht bereits, der Zugang zum privaten Mitgliederbereich wird jedoch manuell freigegeben. Bitte warten Sie auf die Bestätigung.",
+      "Ihr Konto wurde erfolgreich erstellt. Der Zugang zum privaten Mitgliederbereich wird nach Prüfung und Freigabe Ihrer Mitgliedschaft manuell erteilt.",
     modify: "Modify",
     save: "Save",
     cancel: "Cancel",
+    adminTitle: "Admin Panel",
+    adminSubtitle:
+      "Anfragen prüfen und registrierte Benutzer freigeben.",
+    adminEnquiries: "Mitgliedsanfragen",
+    adminMembers: "Registrierte Mitglieder",
+    adminNoEnquiries: "Keine Anfragen vorhanden.",
+    adminNoMembers: "Keine Mitglieder gefunden.",
+    adminApprove: "Mitglied freigeben",
+    adminMarkReviewed: "Als geprüft markieren",
+    adminApproved: "Freigegeben",
+    adminPending: "Ausstehend",
+    adminReviewed: "Geprüft",
+    adminNew: "Neu",
+    adminSaveRole: "Rolle speichern",
+    adminRole: "Rolle",
   },
 };
 
@@ -262,6 +283,10 @@ const uiMessages = {
     setupTitle: "Supabase setup required",
     setupText:
       "Replace the placeholder Supabase URL and anon key in the code to activate real authentication, password protection and database-backed user accounts.",
+    approvalSuccess: "Member approved successfully.",
+    enquiryReviewedSuccess: "Enquiry marked as reviewed.",
+    roleUpdateSuccess: "Member role updated successfully.",
+    contentUpdateSuccess: "Content updated successfully.",
   },
   de: {
     loginSuccess: "Anmeldung erfolgreich.",
@@ -281,7 +306,8 @@ const uiMessages = {
       "Änderung der E-Mail angestossen. Bitte die Bestätigungs-E-Mail von Supabase prüfen.",
     passwordUpdateSuccess: "Passwort erfolgreich aktualisiert.",
     passwordMismatch: "Die neuen Passwörter stimmen nicht überein.",
-    passwordTooShort: "Bitte verwenden Sie ein Passwort mit mindestens 8 Zeichen.",
+    passwordTooShort:
+      "Bitte verwenden Sie ein Passwort mit mindestens 8 Zeichen.",
     participantUpdateSuccess: "Teilnahme erfolgreich aktualisiert.",
     uploadError: "Datei-Upload fehlgeschlagen.",
     enquirySuccess: "Ihre Anfrage wurde erfolgreich übermittelt.",
@@ -291,10 +317,23 @@ const uiMessages = {
     setupTitle: "Supabase-Einrichtung erforderlich",
     setupText:
       "Ersetzen Sie die Platzhalter für Supabase URL und Anon Key im Code, damit echte Authentifizierung, Passwortschutz und datenbankgestützte Benutzerkonten aktiv werden.",
+    approvalSuccess: "Mitglied erfolgreich freigegeben.",
+    enquiryReviewedSuccess: "Anfrage als geprüft markiert.",
+    roleUpdateSuccess: "Mitgliedsrolle erfolgreich aktualisiert.",
+    contentUpdateSuccess: "Inhalt erfolgreich aktualisiert.",
   },
 };
 
-function TextEditorControls({ isAdmin, isEditing, onModify, onSave, onCancel, modifyLabel, saveLabel, cancelLabel }) {
+function TextEditorControls({
+  isAdmin,
+  isEditing,
+  onModify,
+  onSave,
+  onCancel,
+  modifyLabel,
+  saveLabel,
+  cancelLabel,
+}) {
   if (!isAdmin) return null;
 
   return (
@@ -343,12 +382,11 @@ function EditableText({
 }) {
   const [isEditing, setIsEditing] = useState(false);
   const [draft, setDraft] = useState(value || "");
+  const Tag = as;
 
   useEffect(() => {
     if (!isEditing) setDraft(value || "");
   }, [value, isEditing]);
-
-  const Tag = as;
 
   return (
     <div>
@@ -491,6 +529,7 @@ export default function TheHeritageDriversLandingPage() {
 
   const [session, setSession] = useState(null);
   const [profile, setProfile] = useState(null);
+  const [profileLoaded, setProfileLoaded] = useState(false);
   const [websiteContent, setWebsiteContent] = useState({});
 
   const [loading, setLoading] = useState(false);
@@ -525,17 +564,53 @@ export default function TheHeritageDriversLandingPage() {
     interest_note: "",
   });
   const [enquiryLoading, setEnquiryLoading] = useState(false);
+  const [enquiries, setEnquiries] = useState([]);
+  const [enquiriesLoading, setEnquiriesLoading] = useState(false);
+  const [memberProfilesAdmin, setMemberProfilesAdmin] = useState([]);
+  const [memberRoleDrafts, setMemberRoleDrafts] = useState({});
 
   const messages = uiMessages[lang];
   const isLoggedIn = !!session;
   const isAdmin = profile?.role === "admin";
   const isApproved = profile?.approved === true;
-  const hasMemberAccess = isLoggedIn && isApproved;
+  const hasMemberAccess = isLoggedIn && (isApproved || isAdmin);
 
   const tc = (key) => {
     const saved = websiteContent?.[lang]?.[key];
     const fallback = fallbackContent?.[lang]?.[key];
     return saved || fallback || "";
+  };
+
+  const memberName = useMemo(() => {
+    if (profile?.full_name) return profile.full_name;
+    const sessionEmail = session?.user?.email || email;
+    if (!sessionEmail) return lang === "en" ? "Member" : "Mitglied";
+    return sessionEmail.split("@")[0].replace(/[._-]/g, " ");
+  }, [profile, session, email, lang]);
+
+  const resetStatus = () => setStatus({ type: "", message: "" });
+
+  const clearAppState = () => {
+    setSession(null);
+    setProfile(null);
+    setProfileLoaded(false);
+    setEvents([]);
+    setParticipants([]);
+    setParticipantsView(null);
+    setEditingEventId(null);
+    setEventForm(emptyEventForm);
+    setEventImageFile(null);
+    setEventAttachmentFile(null);
+    setAccountPassword("");
+    setAccountPasswordConfirm("");
+    setEnquiries([]);
+    setMemberProfilesAdmin([]);
+    setMemberRoleDrafts({});
+  };
+
+  const syncAccountFields = (nextProfile, nextSession) => {
+    setAccountName(nextProfile?.full_name || "");
+    setAccountEmail(nextSession?.user?.email || "");
   };
 
   const saveContentField = async (key, value) => {
@@ -564,38 +639,7 @@ export default function TheHeritageDriversLandingPage() {
       },
     }));
 
-    setStatus({
-      type: "success",
-      message: lang === "en" ? "Content updated." : "Inhalt aktualisiert.",
-    });
-  };
-
-  const memberName = useMemo(() => {
-    if (profile?.full_name) return profile.full_name;
-    const sessionEmail = session?.user?.email || email;
-    if (!sessionEmail) return lang === "en" ? "Member" : "Mitglied";
-    return sessionEmail.split("@")[0].replace(/[._-]/g, " ");
-  }, [profile, session, email, lang]);
-
-  const resetStatus = () => setStatus({ type: "", message: "" });
-
-  const clearAppState = () => {
-    setSession(null);
-    setProfile(null);
-    setEvents([]);
-    setParticipants([]);
-    setParticipantsView(null);
-    setEditingEventId(null);
-    setEventForm(emptyEventForm);
-    setEventImageFile(null);
-    setEventAttachmentFile(null);
-    setAccountPassword("");
-    setAccountPasswordConfirm("");
-  };
-
-  const syncAccountFields = (nextProfile, nextSession) => {
-    setAccountName(nextProfile?.full_name || "");
-    setAccountEmail(nextSession?.user?.email || "");
+    setStatus({ type: "success", message: messages.contentUpdateSuccess });
   };
 
   const loadWebsiteContent = async () => {
@@ -624,6 +668,8 @@ export default function TheHeritageDriversLandingPage() {
       .eq("id", userId)
       .single();
 
+    setProfileLoaded(true);
+
     if (error) return null;
 
     setProfile(data);
@@ -635,16 +681,12 @@ export default function TheHeritageDriversLandingPage() {
     if (!supabase) return;
 
     setEventsLoading(true);
-
     const { data, error } = await supabase
       .from("events")
       .select("*")
       .order("event_date", { ascending: true });
 
-    if (!error && data) {
-      setEvents(data);
-    }
-
+    if (!error && data) setEvents(data);
     setEventsLoading(false);
   };
 
@@ -655,8 +697,37 @@ export default function TheHeritageDriversLandingPage() {
       .from("event_participants")
       .select("id, event_id, user_id, status, created_at");
 
+    if (!error && data) setParticipants(data);
+  };
+
+  const loadEnquiries = async () => {
+    if (!supabase) return;
+
+    setEnquiriesLoading(true);
+    const { data, error } = await supabase
+      .from("membership_enquiries")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (!error && data) setEnquiries(data);
+    setEnquiriesLoading(false);
+  };
+
+  const loadMemberProfilesAdmin = async () => {
+    if (!supabase) return;
+
+    const { data, error } = await supabase
+      .from("member_profiles")
+      .select("id, full_name, role, approved")
+      .order("full_name", { ascending: true });
+
     if (!error && data) {
-      setParticipants(data);
+      setMemberProfilesAdmin(data);
+      const drafts = {};
+      data.forEach((row) => {
+        drafts[row.id] = row.role || "member";
+      });
+      setMemberRoleDrafts(drafts);
     }
   };
 
@@ -667,6 +738,15 @@ export default function TheHeritageDriversLandingPage() {
     syncAccountFields(loadedProfile, currentSession);
     await loadEvents();
     await loadParticipants();
+
+    if (loadedProfile?.role === "admin") {
+      await loadEnquiries();
+      await loadMemberProfilesAdmin();
+    } else {
+      setEnquiries([]);
+      setMemberProfilesAdmin([]);
+      setMemberRoleDrafts({});
+    }
   };
 
   useEffect(() => {
@@ -705,6 +785,7 @@ export default function TheHeritageDriversLandingPage() {
       if (!mounted) return;
 
       setSession(currentSession);
+      setProfileLoaded(false);
 
       if (currentSession?.user) {
         await loadAppData(currentSession);
@@ -719,7 +800,12 @@ export default function TheHeritageDriversLandingPage() {
     };
   }, []);
 
-  const uploadFileToBucket = async ({ bucket, folder, file, makePublic = true }) => {
+  const uploadFileToBucket = async ({
+    bucket,
+    folder,
+    file,
+    makePublic = true,
+  }) => {
     if (!supabase || !file || !session?.user) return { url: "", name: "" };
 
     const fileExt = file.name.split(".").pop();
@@ -783,7 +869,10 @@ export default function TheHeritageDriversLandingPage() {
     setEnquiryLoading(false);
 
     if (error) {
-      setStatus({ type: "error", message: error.message || messages.enquiryError });
+      setStatus({
+        type: "error",
+        message: error.message || messages.enquiryError,
+      });
       return;
     }
 
@@ -793,6 +882,7 @@ export default function TheHeritageDriversLandingPage() {
 
   const handleLogin = async () => {
     resetStatus();
+
     if (!supabase) {
       setStatus({ type: "error", message: messages.setupText });
       return;
@@ -806,7 +896,10 @@ export default function TheHeritageDriversLandingPage() {
     setLoading(false);
 
     if (error) {
-      setStatus({ type: "error", message: error.message || messages.genericError });
+      setStatus({
+        type: "error",
+        message: error.message || messages.genericError,
+      });
       return;
     }
 
@@ -817,6 +910,7 @@ export default function TheHeritageDriversLandingPage() {
 
   const handleSignup = async () => {
     resetStatus();
+
     if (!supabase) {
       setStatus({ type: "error", message: messages.setupText });
       return;
@@ -834,7 +928,10 @@ export default function TheHeritageDriversLandingPage() {
 
     if (error) {
       setLoading(false);
-      setStatus({ type: "error", message: error.message || messages.genericError });
+      setStatus({
+        type: "error",
+        message: error.message || messages.genericError,
+      });
       return;
     }
 
@@ -855,14 +952,19 @@ export default function TheHeritageDriversLandingPage() {
 
   const handleLogout = async () => {
     resetStatus();
+
     if (!supabase) {
       clearAppState();
       return;
     }
 
     const { error } = await supabase.auth.signOut();
+
     if (error) {
-      setStatus({ type: "error", message: error.message || messages.genericError });
+      setStatus({
+        type: "error",
+        message: error.message || messages.genericError,
+      });
       return;
     }
 
@@ -924,7 +1026,9 @@ export default function TheHeritageDriversLandingPage() {
     }
 
     setAccountLoading(true);
-    const { error } = await supabase.auth.updateUser({ password: accountPassword });
+    const { error } = await supabase.auth.updateUser({
+      password: accountPassword,
+    });
     setAccountLoading(false);
 
     if (error) {
@@ -939,6 +1043,7 @@ export default function TheHeritageDriversLandingPage() {
 
   const handleCreateEvent = async () => {
     resetStatus();
+
     if (!supabase || !session?.user || !isAdmin) {
       setStatus({ type: "error", message: messages.notAuthorized });
       return;
@@ -983,14 +1088,19 @@ export default function TheHeritageDriversLandingPage() {
         : await supabase.from("events").insert(payload);
 
       if (response.error) {
-        setStatus({ type: "error", message: response.error.message || messages.eventCreateError });
+        setStatus({
+          type: "error",
+          message: response.error.message || messages.eventCreateError,
+        });
         setEventSaving(false);
         return;
       }
 
       setStatus({
         type: "success",
-        message: editingEventId ? messages.eventUpdateSuccess : messages.eventCreateSuccess,
+        message: editingEventId
+          ? messages.eventUpdateSuccess
+          : messages.eventCreateSuccess,
       });
 
       setEventForm(emptyEventForm);
@@ -999,7 +1109,10 @@ export default function TheHeritageDriversLandingPage() {
       setEditingEventId(null);
       await loadEvents();
     } catch (err) {
-      setStatus({ type: "error", message: err?.message || messages.uploadError });
+      setStatus({
+        type: "error",
+        message: err?.message || messages.uploadError,
+      });
     }
 
     setEventSaving(false);
@@ -1007,6 +1120,7 @@ export default function TheHeritageDriversLandingPage() {
 
   const handleDeleteEvent = async (eventId) => {
     resetStatus();
+
     if (!supabase || !session?.user || !isAdmin) {
       setStatus({ type: "error", message: messages.notAuthorized });
       return;
@@ -1016,6 +1130,7 @@ export default function TheHeritageDriversLandingPage() {
     if (!confirmed) return;
 
     const { error } = await supabase.from("events").delete().eq("id", eventId);
+
     if (error) {
       setStatus({ type: "error", message: error.message });
       return;
@@ -1059,7 +1174,9 @@ export default function TheHeritageDriversLandingPage() {
 
   const isRegisteredForEvent = (eventId) => {
     if (!session?.user) return false;
-    return participants.some((p) => p.event_id === eventId && p.user_id === session.user.id);
+    return participants.some(
+      (p) => p.event_id === eventId && p.user_id === session.user.id
+    );
   };
 
   const handleToggleParticipation = async (eventId, checked) => {
@@ -1097,7 +1214,10 @@ export default function TheHeritageDriversLandingPage() {
     }
 
     await loadParticipants();
-    setStatus({ type: "success", message: messages.participantUpdateSuccess });
+    setStatus({
+      type: "success",
+      message: messages.participantUpdateSuccess,
+    });
   };
 
   const handleViewParticipants = async (eventId) => {
@@ -1130,13 +1250,84 @@ export default function TheHeritageDriversLandingPage() {
       return;
     }
 
-    const nameMap = new Map((profilesData || []).map((row) => [row.id, row.full_name]));
+    const nameMap = new Map(
+      (profilesData || []).map((row) => [row.id, row.full_name])
+    );
+
     const rows = (data || []).map((row) => ({
       ...row,
       full_name: nameMap.get(row.user_id) || row.user_id,
     }));
 
     setParticipantsView({ eventId, rows });
+  };
+
+  const handleApproveMember = async (memberId) => {
+    resetStatus();
+    if (!supabase || !session?.user || !isAdmin) return;
+
+    const selectedRole = memberRoleDrafts[memberId] || "member";
+
+    const { error } = await supabase
+      .from("member_profiles")
+      .update({
+        approved: true,
+        role: selectedRole,
+      })
+      .eq("id", memberId);
+
+    if (error) {
+      setStatus({ type: "error", message: error.message });
+      return;
+    }
+
+    setStatus({ type: "success", message: messages.approvalSuccess });
+    await loadMemberProfilesAdmin();
+  };
+
+  const handleUpdateMemberRole = async (memberId) => {
+    resetStatus();
+    if (!supabase || !session?.user || !isAdmin) return;
+
+    const selectedRole = memberRoleDrafts[memberId] || "member";
+
+    const { error } = await supabase
+      .from("member_profiles")
+      .update({ role: selectedRole })
+      .eq("id", memberId);
+
+    if (error) {
+      setStatus({ type: "error", message: error.message });
+      return;
+    }
+
+    setStatus({ type: "success", message: messages.roleUpdateSuccess });
+    await loadMemberProfilesAdmin();
+  };
+
+  const handleMarkEnquiryReviewed = async (enquiryId) => {
+    resetStatus();
+    if (!supabase || !session?.user || !isAdmin) return;
+
+    const { error } = await supabase
+      .from("membership_enquiries")
+      .update({
+        status: "reviewed",
+        reviewed_at: new Date().toISOString(),
+        reviewed_by: session.user.id,
+      })
+      .eq("id", enquiryId);
+
+    if (error) {
+      setStatus({ type: "error", message: error.message });
+      return;
+    }
+
+    setStatus({
+      type: "success",
+      message: messages.enquiryReviewedSuccess,
+    });
+    await loadEnquiries();
   };
 
   const StatusBanner = () =>
@@ -1162,9 +1353,15 @@ export default function TheHeritageDriversLandingPage() {
       <header className="border-b border-[#2a2213]">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-5">
           <div className="flex items-center gap-4">
-            <img src="/logo.png" alt="The Heritage Drivers" className="h-10 w-10 object-contain" />
+            <img
+              src="/logo.png"
+              alt="The Heritage Drivers"
+              className="h-10 w-10 object-contain"
+            />
             <div>
-              <div className="text-xs uppercase tracking-[0.4em] text-[#b6924f]">The Heritage Drivers</div>
+              <div className="text-xs uppercase tracking-[0.4em] text-[#b6924f]">
+                The Heritage Drivers
+              </div>
               <div className="text-sm text-[#a89c84]">Motor Cars & Culture</div>
             </div>
           </div>
@@ -1172,37 +1369,13 @@ export default function TheHeritageDriversLandingPage() {
           <div className="flex items-center gap-4">
             <nav className="hidden items-center gap-8 text-sm md:flex">
               <Link href="/society" className="transition hover:text-white">
-                <EditableText
-                  isAdmin={isAdmin}
-                  value={tc("navSociety")}
-                  onSave={(v) => saveContentField("navSociety", v)}
-                  as="span"
-                  modifyLabel={tc("modify")}
-                  saveLabel={tc("save")}
-                  cancelLabel={tc("cancel")}
-                />
+                {tc("navSociety")}
               </Link>
               <Link href="/philosophy" className="transition hover:text-white">
-                <EditableText
-                  isAdmin={isAdmin}
-                  value={tc("navPhilosophy")}
-                  onSave={(v) => saveContentField("navPhilosophy", v)}
-                  as="span"
-                  modifyLabel={tc("modify")}
-                  saveLabel={tc("save")}
-                  cancelLabel={tc("cancel")}
-                />
+                {tc("navPhilosophy")}
               </Link>
               <Link href="/membership" className="transition hover:text-white">
-                <EditableText
-                  isAdmin={isAdmin}
-                  value={tc("navMembership")}
-                  onSave={(v) => saveContentField("navMembership", v)}
-                  as="span"
-                  modifyLabel={tc("modify")}
-                  saveLabel={tc("save")}
-                  cancelLabel={tc("cancel")}
-                />
+                {tc("navMembership")}
               </Link>
 
               {!isLoggedIn ? (
@@ -1214,15 +1387,7 @@ export default function TheHeritageDriversLandingPage() {
                   }}
                   className="inline-flex rounded-full border border-[#3b311d] px-4 py-2 text-xs uppercase tracking-[0.22em] text-[#e8dcc0] transition hover:border-[#b6924f] hover:text-white"
                 >
-                  <EditableText
-                    isAdmin={isAdmin}
-                    value={tc("loginButton")}
-                    onSave={(v) => saveContentField("loginButton", v)}
-                    as="span"
-                    modifyLabel={tc("modify")}
-                    saveLabel={tc("save")}
-                    cancelLabel={tc("cancel")}
-                  />
+                  {tc("loginButton")}
                 </button>
               ) : (
                 <button
@@ -1250,14 +1415,22 @@ export default function TheHeritageDriversLandingPage() {
 
         {!supabaseConfigured && (
           <div className="mb-10 rounded-[1.75rem] border border-[#4b2f20] bg-[#16100d] p-6">
-            <p className="text-xs uppercase tracking-[0.35em] text-[#b6924f]">{messages.setupTitle}</p>
-            <p className="mt-3 max-w-3xl text-sm leading-7 text-[#cfbea3]">{messages.setupText}</p>
+            <p className="text-xs uppercase tracking-[0.35em] text-[#b6924f]">
+              {messages.setupTitle}
+            </p>
+            <p className="mt-3 max-w-3xl text-sm leading-7 text-[#cfbea3]">
+              {messages.setupText}
+            </p>
           </div>
         )}
 
         <section>
           <div className="mb-10 flex justify-center">
-            <img src="/logo.png" alt="The Heritage Drivers" className="h-40 object-contain" />
+            <img
+              src="/logo.png"
+              alt="The Heritage Drivers"
+              className="h-40 object-contain"
+            />
           </div>
 
           {!isLoggedIn ? (
@@ -1297,27 +1470,17 @@ export default function TheHeritageDriversLandingPage() {
               />
 
               <div className="mt-10 flex flex-wrap gap-4">
-                <Link href="/membership" className="bg-[#b6924f] px-6 py-3 text-black">
-                  <EditableText
-                    isAdmin={isAdmin}
-                    value={tc("cta1")}
-                    onSave={(v) => saveContentField("cta1", v)}
-                    as="span"
-                    modifyLabel={tc("modify")}
-                    saveLabel={tc("save")}
-                    cancelLabel={tc("cancel")}
-                  />
+                <Link
+                  href="/membership"
+                  className="bg-[#b6924f] px-6 py-3 text-black"
+                >
+                  {tc("cta1")}
                 </Link>
-                <Link href="/society" className="border border-[#b6924f] px-6 py-3">
-                  <EditableText
-                    isAdmin={isAdmin}
-                    value={tc("cta2")}
-                    onSave={(v) => saveContentField("cta2", v)}
-                    as="span"
-                    modifyLabel={tc("modify")}
-                    saveLabel={tc("save")}
-                    cancelLabel={tc("cancel")}
-                  />
+                <Link
+                  href="/society"
+                  className="border border-[#b6924f] px-6 py-3"
+                >
+                  {tc("cta2")}
                 </Link>
                 <button
                   onClick={() => {
@@ -1332,17 +1495,8 @@ export default function TheHeritageDriversLandingPage() {
               </div>
 
               <div className="mt-10 flex flex-wrap gap-6 text-sm uppercase text-[#8b7e65]">
-                {["tag1", "tag2", "tag3", "tag4"].map((key) => (
-                  <EditableText
-                    key={key}
-                    isAdmin={isAdmin}
-                    value={tc(key)}
-                    onSave={(v) => saveContentField(key, v)}
-                    as="span"
-                    modifyLabel={tc("modify")}
-                    saveLabel={tc("save")}
-                    cancelLabel={tc("cancel")}
-                  />
+                {[tc("tag1"), tc("tag2"), tc("tag3"), tc("tag4")].map((tag) => (
+                  <span key={tag}>{tag}</span>
                 ))}
               </div>
             </>
@@ -1376,34 +1530,21 @@ export default function TheHeritageDriversLandingPage() {
 
               <div className="mt-10 grid gap-6 lg:grid-cols-3">
                 {[
-                  [Calendar, "eventCardTitle", "eventCardText"],
-                  [Mail, "notesTitle", "notesText"],
-                  [Wrench, "atelierTitle", "atelierText"],
-                ].map(([Icon, titleKey, textKey]) => (
-                  <div key={titleKey} className="rounded-[1.5rem] border border-[#2d2416] bg-[#131313] p-6">
+                  [Calendar, tc("eventCardTitle"), tc("eventCardText")],
+                  [Mail, tc("notesTitle"), tc("notesText")],
+                  [Wrench, tc("atelierTitle"), tc("atelierText")],
+                ].map(([Icon, title, text]) => (
+                  <div
+                    key={title}
+                    className="rounded-[1.5rem] border border-[#2d2416] bg-[#131313] p-6"
+                  >
                     <div className="flex items-center gap-3">
                       <Icon className="h-5 w-5 text-[#b6924f]" />
-                      <EditableText
-                        isAdmin={isAdmin}
-                        value={tc(titleKey)}
-                        onSave={(v) => saveContentField(titleKey, v)}
-                        className="text-lg text-[#f2e6cf]"
-                        as="h3"
-                        modifyLabel={tc("modify")}
-                        saveLabel={tc("save")}
-                        cancelLabel={tc("cancel")}
-                      />
+                      <h3 className="text-lg text-[#f2e6cf]">{title}</h3>
                     </div>
-                    <EditableText
-                      isAdmin={isAdmin}
-                      value={tc(textKey)}
-                      onSave={(v) => saveContentField(textKey, v)}
-                      className="mt-3 text-sm leading-6 text-[#a99c83]"
-                      as="p"
-                      modifyLabel={tc("modify")}
-                      saveLabel={tc("save")}
-                      cancelLabel={tc("cancel")}
-                    />
+                    <p className="mt-3 text-sm leading-6 text-[#a99c83]">
+                      {text}
+                    </p>
                   </div>
                 ))}
               </div>
@@ -1432,26 +1573,12 @@ export default function TheHeritageDriversLandingPage() {
                   <User className="h-5 w-5 text-[#b6924f]" />
                 </div>
                 <div>
-                  <EditableText
-                    isAdmin={isAdmin}
-                    value={lang === "en" ? "Members" : "Mitglieder"}
-                    onSave={async () => {}}
-                    className="text-xs uppercase tracking-[0.35em] text-[#b6924f]"
-                    as="p"
-                    modifyLabel={tc("modify")}
-                    saveLabel={tc("save")}
-                    cancelLabel={tc("cancel")}
-                  />
-                  <EditableText
-                    isAdmin={isAdmin}
-                    value={tc("loginSubtitle")}
-                    onSave={(v) => saveContentField("loginSubtitle", v)}
-                    className="mt-2 text-sm text-[#b9ad95]"
-                    as="p"
-                    modifyLabel={tc("modify")}
-                    saveLabel={tc("save")}
-                    cancelLabel={tc("cancel")}
-                  />
+                  <p className="text-xs uppercase tracking-[0.35em] text-[#b6924f]">
+                    {lang === "en" ? "Members" : "Mitglieder"}
+                  </p>
+                  <p className="mt-2 text-sm text-[#b9ad95]">
+                    {tc("loginSubtitle")}
+                  </p>
                 </div>
               </div>
 
@@ -1529,7 +1656,10 @@ export default function TheHeritageDriversLandingPage() {
                 inputType="textarea"
                 fieldValue={enquiryForm.interest_note}
                 onFieldChange={(e) =>
-                  setEnquiryForm({ ...enquiryForm, interest_note: e.target.value })
+                  setEnquiryForm({
+                    ...enquiryForm,
+                    interest_note: e.target.value,
+                  })
                 }
                 className="w-full border border-[#342a1a] bg-black p-3 text-[#efe2c5]"
                 modifyLabel={tc("modify")}
@@ -1543,21 +1673,13 @@ export default function TheHeritageDriversLandingPage() {
                 className="flex w-full items-center justify-center gap-2 bg-[#b6924f] px-6 py-3 text-black disabled:cursor-not-allowed disabled:opacity-70"
               >
                 {enquiryLoading && <Loader2 className="h-4 w-4 animate-spin" />}
-                <EditableText
-                  isAdmin={isAdmin}
-                  value={tc("enquirySubmit")}
-                  onSave={(v) => saveContentField("enquirySubmit", v)}
-                  as="span"
-                  modifyLabel={tc("modify")}
-                  saveLabel={tc("save")}
-                  cancelLabel={tc("cancel")}
-                />
+                {tc("enquirySubmit")}
               </button>
             </div>
           </section>
         )}
 
-        {isLoggedIn && !isApproved && (
+        {isLoggedIn && profileLoaded && !hasMemberAccess && (
           <section className="mt-24">
             <div className="rounded-[2rem] border border-[#4b2f20] bg-[#16100d] p-8">
               <EditableText
@@ -1589,27 +1711,15 @@ export default function TheHeritageDriversLandingPage() {
             <div className="rounded-[2rem] border border-[#2c2415] bg-[#0f0f0f] p-8 shadow-2xl shadow-black/30">
               <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
                 <div>
-                  <p className="text-xs uppercase tracking-[0.35em] text-[#b6924f]">Club Events</p>
-                  <EditableText
-                    isAdmin={isAdmin}
-                    value={tc("eventsSectionTitle")}
-                    onSave={(v) => saveContentField("eventsSectionTitle", v)}
-                    className="mt-4 text-3xl text-[#f2e6cf]"
-                    as="h2"
-                    modifyLabel={tc("modify")}
-                    saveLabel={tc("save")}
-                    cancelLabel={tc("cancel")}
-                  />
-                  <EditableText
-                    isAdmin={isAdmin}
-                    value={tc("eventsSectionText")}
-                    onSave={(v) => saveContentField("eventsSectionText", v)}
-                    className="mt-4 max-w-2xl text-[#b8ad96]"
-                    as="p"
-                    modifyLabel={tc("modify")}
-                    saveLabel={tc("save")}
-                    cancelLabel={tc("cancel")}
-                  />
+                  <p className="text-xs uppercase tracking-[0.35em] text-[#b6924f]">
+                    Club Events
+                  </p>
+                  <h2 className="mt-4 text-3xl text-[#f2e6cf]">
+                    {tc("eventsSectionTitle")}
+                  </h2>
+                  <p className="mt-4 max-w-2xl text-[#b8ad96]">
+                    {tc("eventsSectionText")}
+                  </p>
                 </div>
 
                 <button
@@ -1629,7 +1739,10 @@ export default function TheHeritageDriversLandingPage() {
                   ) : (
                     <div className="grid gap-6 lg:grid-cols-2">
                       {events.map((event) => (
-                        <div key={event.id} className="rounded-[1.5rem] border border-[#2d2416] bg-[#0f0f0f] p-6">
+                        <div
+                          key={event.id}
+                          className="rounded-[1.5rem] border border-[#2d2416] bg-[#0f0f0f] p-6"
+                        >
                           {event.image_url && (
                             <img
                               src={event.image_url}
@@ -1638,24 +1751,33 @@ export default function TheHeritageDriversLandingPage() {
                             />
                           )}
 
-                          <p className="text-xs uppercase tracking-[0.3em] text-[#b6924f]">{tc("eventUpcoming")}</p>
-                          <h4 className="mt-3 text-xl text-[#f2e6cf]">{event.title}</h4>
+                          <p className="text-xs uppercase tracking-[0.3em] text-[#b6924f]">
+                            {tc("eventUpcoming")}
+                          </p>
+                          <h4 className="mt-3 text-xl text-[#f2e6cf]">
+                            {event.title}
+                          </h4>
                           <p className="mt-2 text-sm text-[#a99c83]">
                             {event.event_date}
                             {event.location ? ` · ${event.location}` : ""}
                           </p>
 
                           {event.short_description && (
-                            <p className="mt-4 text-sm leading-6 text-[#a99c83]">{event.short_description}</p>
+                            <p className="mt-4 text-sm leading-6 text-[#a99c83]">
+                              {event.short_description}
+                            </p>
                           )}
 
                           {event.long_description && (
-                            <p className="mt-4 text-sm leading-6 text-[#8f836d]">{event.long_description}</p>
+                            <p className="mt-4 text-sm leading-6 text-[#8f836d]">
+                              {event.long_description}
+                            </p>
                           )}
 
                           {event.max_participants && (
                             <p className="mt-4 text-sm text-[#b8ad96]">
-                              {tc("eventMaxParticipantsLabel")}: {event.max_participants}
+                              {tc("eventMaxParticipantsLabel")}:{" "}
+                              {event.max_participants}
                             </p>
                           )}
 
@@ -1678,10 +1800,18 @@ export default function TheHeritageDriversLandingPage() {
                               id={`join-${event.id}`}
                               type="checkbox"
                               checked={isRegisteredForEvent(event.id)}
-                              onChange={(e) => handleToggleParticipation(event.id, e.target.checked)}
+                              onChange={(e) =>
+                                handleToggleParticipation(
+                                  event.id,
+                                  e.target.checked
+                                )
+                              }
                               className="h-4 w-4 accent-[#b6924f]"
                             />
-                            <label htmlFor={`join-${event.id}`} className="text-sm text-[#e8dcc0]">
+                            <label
+                              htmlFor={`join-${event.id}`}
+                              className="text-sm text-[#e8dcc0]"
+                            >
                               {tc("eventAttend")}
                             </label>
                           </div>
@@ -1736,43 +1866,65 @@ export default function TheHeritageDriversLandingPage() {
                       <div className="mt-6 grid gap-4 lg:grid-cols-2">
                         <input
                           value={eventForm.title}
-                          onChange={(e) => setEventForm({ ...eventForm, title: e.target.value })}
+                          onChange={(e) =>
+                            setEventForm({ ...eventForm, title: e.target.value })
+                          }
                           placeholder={tc("eventTitleLabel")}
                           className="w-full rounded-2xl border border-[#342a1a] bg-black/60 p-4 text-[#efe2c5] outline-none placeholder:text-[#796c56]"
                         />
-
                         <input
                           value={eventForm.event_date}
-                          onChange={(e) => setEventForm({ ...eventForm, event_date: e.target.value })}
+                          onChange={(e) =>
+                            setEventForm({
+                              ...eventForm,
+                              event_date: e.target.value,
+                            })
+                          }
                           type="date"
                           className="w-full rounded-2xl border border-[#342a1a] bg-black/60 p-4 text-[#efe2c5] outline-none"
                         />
-
                         <input
                           value={eventForm.location}
-                          onChange={(e) => setEventForm({ ...eventForm, location: e.target.value })}
+                          onChange={(e) =>
+                            setEventForm({
+                              ...eventForm,
+                              location: e.target.value,
+                            })
+                          }
                           placeholder={tc("eventLocationLabel")}
                           className="w-full rounded-2xl border border-[#342a1a] bg-black/60 p-4 text-[#efe2c5] outline-none placeholder:text-[#796c56]"
                         />
-
                         <input
                           value={eventForm.max_participants}
-                          onChange={(e) => setEventForm({ ...eventForm, max_participants: e.target.value })}
+                          onChange={(e) =>
+                            setEventForm({
+                              ...eventForm,
+                              max_participants: e.target.value,
+                            })
+                          }
                           type="number"
                           placeholder={tc("eventMaxParticipantsLabel")}
                           className="w-full rounded-2xl border border-[#342a1a] bg-black/60 p-4 text-[#efe2c5] outline-none placeholder:text-[#796c56]"
                         />
-
                         <input
                           value={eventForm.short_description}
-                          onChange={(e) => setEventForm({ ...eventForm, short_description: e.target.value })}
+                          onChange={(e) =>
+                            setEventForm({
+                              ...eventForm,
+                              short_description: e.target.value,
+                            })
+                          }
                           placeholder={tc("eventShortDescriptionLabel")}
                           className="lg:col-span-2 w-full rounded-2xl border border-[#342a1a] bg-black/60 p-4 text-[#efe2c5] outline-none placeholder:text-[#796c56]"
                         />
-
                         <textarea
                           value={eventForm.long_description}
-                          onChange={(e) => setEventForm({ ...eventForm, long_description: e.target.value })}
+                          onChange={(e) =>
+                            setEventForm({
+                              ...eventForm,
+                              long_description: e.target.value,
+                            })
+                          }
                           placeholder={tc("eventLongDescriptionLabel")}
                           className="lg:col-span-2 w-full rounded-2xl border border-[#342a1a] bg-black/60 p-4 text-[#efe2c5] outline-none placeholder:text-[#796c56]"
                         />
@@ -1785,7 +1937,9 @@ export default function TheHeritageDriversLandingPage() {
                           <input
                             type="file"
                             accept="image/*"
-                            onChange={(e) => setEventImageFile(e.target.files?.[0] || null)}
+                            onChange={(e) =>
+                              setEventImageFile(e.target.files?.[0] || null)
+                            }
                             className="w-full text-[#efe2c5] outline-none"
                           />
                         </div>
@@ -1797,7 +1951,11 @@ export default function TheHeritageDriversLandingPage() {
                           </label>
                           <input
                             type="file"
-                            onChange={(e) => setEventAttachmentFile(e.target.files?.[0] || null)}
+                            onChange={(e) =>
+                              setEventAttachmentFile(
+                                e.target.files?.[0] || null
+                              )
+                            }
                             className="w-full text-[#efe2c5] outline-none"
                           />
                         </div>
@@ -1809,8 +1967,12 @@ export default function TheHeritageDriversLandingPage() {
                           disabled={eventSaving}
                           className="inline-flex items-center gap-2 rounded-full bg-[#b6924f] px-5 py-3 text-sm uppercase tracking-[0.22em] text-black transition hover:bg-[#c6a45d] disabled:cursor-not-allowed disabled:opacity-70"
                         >
-                          {eventSaving && <Loader2 className="h-4 w-4 animate-spin" />}
-                          {editingEventId ? tc("eventSaveChanges") : tc("eventCreate")}
+                          {eventSaving && (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          )}
+                          {editingEventId
+                            ? tc("eventSaveChanges")
+                            : tc("eventCreate")}
                         </button>
 
                         {editingEventId && (
@@ -1828,7 +1990,9 @@ export default function TheHeritageDriversLandingPage() {
                   {participantsView && (
                     <div className="mt-8 rounded-[1.5rem] border border-[#2d2416] bg-[#0f0f0f] p-6">
                       <div className="flex items-center justify-between gap-4">
-                        <p className="text-xs uppercase tracking-[0.3em] text-[#b6924f]">{tc("eventParticipants")}</p>
+                        <p className="text-xs uppercase tracking-[0.3em] text-[#b6924f]">
+                          {tc("eventParticipants")}
+                        </p>
                         <button
                           onClick={() => setParticipantsView(null)}
                           className="rounded-full border border-[#3b311d] px-4 py-2 text-xs uppercase tracking-[0.18em] text-[#f2e6cf] transition hover:border-[#b6924f]"
@@ -1839,7 +2003,9 @@ export default function TheHeritageDriversLandingPage() {
 
                       <div className="mt-6 space-y-3">
                         {participantsView.rows.length === 0 ? (
-                          <p className="text-sm text-[#b8ad96]">{tc("eventNoParticipants")}</p>
+                          <p className="text-sm text-[#b8ad96]">
+                            {tc("eventNoParticipants")}
+                          </p>
                         ) : (
                           participantsView.rows.map((row) => (
                             <div
@@ -1858,32 +2024,18 @@ export default function TheHeritageDriversLandingPage() {
                 <div className="rounded-[1.75rem] border border-[#2d2416] bg-[#131313] p-8">
                   <div className="flex items-center gap-3">
                     <Save className="h-5 w-5 text-[#b6924f]" />
-                    <EditableText
-                      isAdmin={isAdmin}
-                      value={tc("accountTitle")}
-                      onSave={(v) => saveContentField("accountTitle", v)}
-                      className="text-xl text-[#f2e6cf]"
-                      as="h3"
-                      modifyLabel={tc("modify")}
-                      saveLabel={tc("save")}
-                      cancelLabel={tc("cancel")}
-                    />
+                    <h3 className="text-xl text-[#f2e6cf]">{tc("accountTitle")}</h3>
                   </div>
 
-                  <EditableText
-                    isAdmin={isAdmin}
-                    value={tc("accountSubtitle")}
-                    onSave={(v) => saveContentField("accountSubtitle", v)}
-                    className="mt-3 text-sm leading-6 text-[#a99c83]"
-                    as="p"
-                    modifyLabel={tc("modify")}
-                    saveLabel={tc("save")}
-                    cancelLabel={tc("cancel")}
-                  />
+                  <p className="mt-3 text-sm leading-6 text-[#a99c83]">
+                    {tc("accountSubtitle")}
+                  </p>
 
                   <div className="mt-6 grid gap-4 lg:grid-cols-2">
                     <div className="rounded-[1.25rem] border border-[#2d2416] bg-[#0f0f0f] p-5">
-                      <label className="mb-2 block text-sm text-[#d9ccb1]">{tc("accountDisplayName")}</label>
+                      <label className="mb-2 block text-sm text-[#d9ccb1]">
+                        {tc("accountDisplayName")}
+                      </label>
                       <input
                         value={accountName}
                         onChange={(e) => setAccountName(e.target.value)}
@@ -1899,7 +2051,9 @@ export default function TheHeritageDriversLandingPage() {
                     </div>
 
                     <div className="rounded-[1.25rem] border border-[#2d2416] bg-[#0f0f0f] p-5">
-                      <label className="mb-2 block text-sm text-[#d9ccb1]">{tc("accountEmail")}</label>
+                      <label className="mb-2 block text-sm text-[#d9ccb1]">
+                        {tc("accountEmail")}
+                      </label>
                       <input
                         type="email"
                         value={accountEmail}
@@ -1918,7 +2072,9 @@ export default function TheHeritageDriversLandingPage() {
                     <div className="rounded-[1.25rem] border border-[#2d2416] bg-[#0f0f0f] p-5 lg:col-span-2">
                       <div className="grid gap-4 lg:grid-cols-2">
                         <div>
-                          <label className="mb-2 block text-sm text-[#d9ccb1]">{tc("accountNewPassword")}</label>
+                          <label className="mb-2 block text-sm text-[#d9ccb1]">
+                            {tc("accountNewPassword")}
+                          </label>
                           <input
                             type="password"
                             value={accountPassword}
@@ -1928,11 +2084,15 @@ export default function TheHeritageDriversLandingPage() {
                         </div>
 
                         <div>
-                          <label className="mb-2 block text-sm text-[#d9ccb1]">{tc("accountConfirmPassword")}</label>
+                          <label className="mb-2 block text-sm text-[#d9ccb1]">
+                            {tc("accountConfirmPassword")}
+                          </label>
                           <input
                             type="password"
                             value={accountPasswordConfirm}
-                            onChange={(e) => setAccountPasswordConfirm(e.target.value)}
+                            onChange={(e) =>
+                              setAccountPasswordConfirm(e.target.value)
+                            }
                             className="w-full rounded-2xl border border-[#342a1a] bg-black/60 p-4 text-[#efe2c5] outline-none"
                           />
                         </div>
@@ -1948,6 +2108,140 @@ export default function TheHeritageDriversLandingPage() {
                     </div>
                   </div>
                 </div>
+
+                {isAdmin && (
+                  <div className="rounded-[1.75rem] border border-[#2d2416] bg-[#131313] p-8">
+                    <h3 className="text-xl text-[#f2e6cf]">{tc("adminTitle")}</h3>
+                    <p className="mt-3 text-sm leading-6 text-[#a99c83]">
+                      {tc("adminSubtitle")}
+                    </p>
+
+                    <div className="mt-8 grid gap-6 lg:grid-cols-2">
+                      <div className="rounded-[1.25rem] border border-[#2d2416] bg-[#0f0f0f] p-5">
+                        <h4 className="text-lg text-[#f2e6cf]">
+                          {tc("adminEnquiries")}
+                        </h4>
+
+                        {enquiriesLoading ? (
+                          <p className="mt-4 text-sm text-[#b8ad96]">Loading...</p>
+                        ) : enquiries.length === 0 ? (
+                          <p className="mt-4 text-sm text-[#b8ad96]">
+                            {tc("adminNoEnquiries")}
+                          </p>
+                        ) : (
+                          <div className="mt-4 space-y-4">
+                            {enquiries.map((enquiry) => (
+                              <div
+                                key={enquiry.id}
+                                className="rounded-xl border border-[#2d2416] bg-[#131313] p-4"
+                              >
+                                <p className="text-sm text-[#f2e6cf]">
+                                  {enquiry.full_name}
+                                </p>
+                                <p className="mt-1 text-sm text-[#b8ad96]">
+                                  {enquiry.email}
+                                </p>
+                                {enquiry.interest_note && (
+                                  <p className="mt-3 text-sm leading-6 text-[#a99c83]">
+                                    {enquiry.interest_note}
+                                  </p>
+                                )}
+                                <p className="mt-3 text-xs uppercase tracking-[0.2em] text-[#8f836d]">
+                                  {enquiry.status === "reviewed"
+                                    ? tc("adminReviewed")
+                                    : tc("adminNew")}
+                                </p>
+                                {enquiry.status !== "reviewed" && (
+                                  <button
+                                    onClick={() =>
+                                      handleMarkEnquiryReviewed(enquiry.id)
+                                    }
+                                    className="mt-4 rounded-full border border-[#b6924f] px-4 py-2 text-xs uppercase tracking-[0.18em] text-[#f2e6cf] transition hover:bg-[#b6924f] hover:text-black"
+                                  >
+                                    {tc("adminMarkReviewed")}
+                                  </button>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="rounded-[1.25rem] border border-[#2d2416] bg-[#0f0f0f] p-5">
+                        <h4 className="text-lg text-[#f2e6cf]">
+                          {tc("adminMembers")}
+                        </h4>
+
+                        {memberProfilesAdmin.length === 0 ? (
+                          <p className="mt-4 text-sm text-[#b8ad96]">
+                            {tc("adminNoMembers")}
+                          </p>
+                        ) : (
+                          <div className="mt-4 space-y-4">
+                            {memberProfilesAdmin.map((member) => (
+                              <div
+                                key={member.id}
+                                className="rounded-xl border border-[#2d2416] bg-[#131313] p-4"
+                              >
+                                <p className="text-sm text-[#f2e6cf]">
+                                  {member.full_name || member.id}
+                                </p>
+                                <p className="mt-2 text-xs uppercase tracking-[0.2em] text-[#8f836d]">
+                                  {member.approved
+                                    ? tc("adminApproved")
+                                    : tc("adminPending")}
+                                </p>
+
+                                <div className="mt-4 space-y-3">
+                                  <label className="block text-[11px] uppercase tracking-[0.18em] text-[#8f836d]">
+                                    {tc("adminRole")}
+                                  </label>
+                                  <select
+                                    value={
+                                      memberRoleDrafts[member.id] ||
+                                      member.role ||
+                                      "member"
+                                    }
+                                    onChange={(e) =>
+                                      setMemberRoleDrafts((prev) => ({
+                                        ...prev,
+                                        [member.id]: e.target.value,
+                                      }))
+                                    }
+                                    className="w-full rounded-2xl border border-[#342a1a] bg-black/60 p-3 text-[#efe2c5] outline-none"
+                                  >
+                                    <option value="member">member</option>
+                                    <option value="admin">admin</option>
+                                  </select>
+
+                                  <button
+                                    onClick={() =>
+                                      handleUpdateMemberRole(member.id)
+                                    }
+                                    className="rounded-full border border-[#b6924f] px-4 py-2 text-xs uppercase tracking-[0.18em] text-[#f2e6cf] transition hover:bg-[#b6924f] hover:text-black"
+                                  >
+                                    {tc("adminSaveRole")}
+                                  </button>
+                                </div>
+
+                                {!member.approved && (
+                                  <button
+                                    onClick={() =>
+                                      handleApproveMember(member.id)
+                                    }
+                                    className="mt-4 rounded-full bg-[#b6924f] px-4 py-2 text-xs uppercase tracking-[0.18em] text-black transition hover:bg-[#c6a45d]"
+                                  >
+                                    {tc("adminApprove")}
+                                  </button>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </section>
@@ -1958,9 +2252,15 @@ export default function TheHeritageDriversLandingPage() {
             <div className="w-full max-w-md rounded-[2rem] border border-[#3a2f1b] bg-[#0d0d0d] p-8 shadow-2xl shadow-black/40">
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <p className="text-xs uppercase tracking-[0.35em] text-[#b6924f]">The Heritage Drivers</p>
-                  <h3 className="mt-3 text-2xl text-[#f0e3c6]">{tc("loginTitle")}</h3>
-                  <p className="mt-3 text-sm leading-6 text-[#ad9f86]">{tc("loginSubtitle")}</p>
+                  <p className="text-xs uppercase tracking-[0.35em] text-[#b6924f]">
+                    The Heritage Drivers
+                  </p>
+                  <h3 className="mt-3 text-2xl text-[#f0e3c6]">
+                    {tc("loginTitle")}
+                  </h3>
+                  <p className="mt-3 text-sm leading-6 text-[#ad9f86]">
+                    {tc("loginSubtitle")}
+                  </p>
                 </div>
 
                 <button
@@ -2022,11 +2322,17 @@ export default function TheHeritageDriversLandingPage() {
                   }}
                   className="w-full text-sm text-[#cdbd9f] underline underline-offset-4 hover:text-white"
                 >
-                  {authMode === "login" ? tc("switchToSignup") : tc("switchToLogin")}
+                  {authMode === "login"
+                    ? tc("switchToSignup")
+                    : tc("switchToLogin")}
                 </button>
 
-                <p className="text-center text-xs text-[#7f735c]">{tc("loginForgot")}</p>
-                <p className="text-center text-xs uppercase tracking-[0.25em] text-[#7f735c]">{tc("loginNote")}</p>
+                <p className="text-center text-xs text-[#7f735c]">
+                  {tc("loginForgot")}
+                </p>
+                <p className="text-center text-xs uppercase tracking-[0.25em] text-[#7f735c]">
+                  {tc("loginNote")}
+                </p>
               </div>
             </div>
           </div>
