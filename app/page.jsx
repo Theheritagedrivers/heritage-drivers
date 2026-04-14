@@ -574,6 +574,14 @@ export default function TheHeritageDriversLandingPage() {
   const isAdmin = profile?.role === "admin";
   const isApproved = profile?.approved === true;
   const hasMemberAccess = isLoggedIn && (isApproved || isAdmin);
+  
+console.log("CURRENT SESSION EMAIL:", session?.user?.email);
+console.log("CURRENT SESSION ID:", session?.user?.id);
+console.log("PROFILE:", profile);
+console.log("IS ADMIN:", isAdmin);
+console.log("IS APPROVED:", isApproved);
+console.log("HAS MEMBER ACCESS:", hasMemberAccess);
+
 
   const tc = (key) => {
     const saved = websiteContent?.[lang]?.[key];
@@ -1678,7 +1686,17 @@ export default function TheHeritageDriversLandingPage() {
             </div>
           </section>
         )}
-
+{isLoggedIn && (
+  <div className="mb-8 rounded-2xl border border-[#4b2f20] bg-[#16100d] p-4 text-sm text-[#cfbea3]">
+    <div>Session email: {session?.user?.email || "none"}</div>
+    <div>Session id: {session?.user?.id || "none"}</div>
+    <div>Profile id: {profile?.id || "none"}</div>
+    <div>Role: {profile?.role || "none"}</div>
+    <div>Approved: {String(profile?.approved)}</div>
+    <div>Profile loaded: {String(profileLoaded)}</div>
+    <div>Has member access: {String(hasMemberAccess)}</div>
+  </div>
+)}
         {isLoggedIn && profileLoaded && !hasMemberAccess && (
           <section className="mt-24">
             <div className="rounded-[2rem] border border-[#4b2f20] bg-[#16100d] p-8">
