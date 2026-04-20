@@ -153,6 +153,15 @@ const fallbackContent = {
     adminRole: "Role",
     adminCreateProfile: "Create Profile",
     adminMissingProfile: "No member profile yet",
+    footerImprintTitle: "Imprint",
+    footerImprintText: "Legal notice and contact details.",
+    footerAffiliationTitle: "Affiliation",
+    footerAffiliationText:
+      "The Heritage Drivers is a private motoring society.",
+    footerSponsorsTitle: "Sponsors",
+    footerSponsorsText: "Selected partners and supporting houses.",
+    footerBottomLine: "The Heritage Drivers",
+    footerImprintLink: "View imprint",
   },
   de: {
     navSociety: "Gesellschaft",
@@ -244,9 +253,9 @@ const fallbackContent = {
     approvalPendingTitle: "Mitgliedschaft in Prüfung",
     approvalPendingText:
       "Ihr Konto wurde erfolgreich erstellt. Der Zugang zum privaten Mitgliederbereich wird nach Prüfung und Freigabe Ihrer Mitgliedschaft manuell erteilt.",
-    modify: "Modify",
-    save: "Save",
-    cancel: "Cancel",
+    modify: "Ändern",
+    save: "Speichern",
+    cancel: "Abbrechen",
     adminTitle: "Admin Panel",
     adminSubtitle:
       "Anfragen prüfen und registrierte Benutzer freigeben.",
@@ -264,6 +273,16 @@ const fallbackContent = {
     adminRole: "Rolle",
     adminCreateProfile: "Profil erstellen",
     adminMissingProfile: "Noch kein Mitgliederprofil",
+    footerImprintTitle: "Impressum",
+    footerImprintText: "Rechtliche Hinweise und Kontaktangaben.",
+    footerAffiliationTitle: "Zugehörigkeit",
+    footerAffiliationText:
+      "The Heritage Drivers ist eine private Fahrergesellschaft.",
+    footerSponsorsTitle: "Sponsoren",
+    footerSponsorsText:
+      "Ausgewählte Partner und unterstützende Häuser.",
+    footerBottomLine: "The Heritage Drivers",
+    footerImprintLink: "Zum Impressum",
   },
 };
 
@@ -554,7 +573,7 @@ function formatDateSafe(dateValue, lang = "en") {
 }
 
 export default function TheHeritageDriversLandingPage() {
-  const [lang, setLang] = useState("en");
+  const [lang, setLang] = useState("de");
   const [showLogin, setShowLogin] = useState(false);
   const [authMode, setAuthMode] = useState("login");
 
@@ -771,8 +790,38 @@ export default function TheHeritageDriversLandingPage() {
       .from("event_participants")
       .select("id, event_id, user_id, status, created_at");
 
-    if (!error && data) setParticipants(data);
-    if (error) setParticipants([]);
+    if (error || !data) {
+      setParticipants([]);
+      return;
+    }
+
+    const userIds = [...new Set(data.map((row) => row.user_id))];
+
+    if (userIds.length === 0) {
+      setParticipants([]);
+      return;
+    }
+
+    const { data: profilesData, error: profilesError } = await supabase
+      .from("member_profiles")
+      .select("id, full_name")
+      .in("id", userIds);
+
+    if (profilesError) {
+      setParticipants(data);
+      return;
+    }
+
+    const nameMap = new Map(
+      (profilesData || []).map((row) => [row.id, row.full_name])
+    );
+
+    const enriched = data.map((row) => ({
+      ...row,
+      full_name: nameMap.get(row.user_id) || row.user_id,
+    }));
+
+    setParticipants(enriched);
   };
 
   const loadEnquiries = async () => {
@@ -1355,6 +1404,14 @@ export default function TheHeritageDriversLandingPage() {
     );
   };
 
+  const getParticipantsForEvent = (eventId) => {
+    return participants
+      .filter((p) => p.event_id === eventId)
+      .sort((a, b) =>
+        String(a.full_name || "").localeCompare(String(b.full_name || ""))
+      );
+  };
+
   const handleToggleParticipation = async (eventId, checked) => {
     resetStatus();
     if (!supabase || !session?.user) return;
@@ -1747,24 +1804,86 @@ export default function TheHeritageDriversLandingPage() {
               />
 
               <div className="mt-10 grid gap-6 lg:grid-cols-3">
-                {[
-                  [Calendar, tc("eventCardTitle"), tc("eventCardText")],
-                  [Mail, tc("notesTitle"), tc("notesText")],
-                  [Wrench, tc("atelierTitle"), tc("atelierText")],
-                ].map(([Icon, title, text]) => (
-                  <div
-                    key={title}
-                    className="rounded-[1.5rem] border border-[#2d2416] bg-[#131313] p-6"
-                  >
-                    <div className="flex items-center gap-3">
-                      <Icon className="h-5 w-5 text-[#b6924f]" />
-                      <h3 className="text-lg text-[#f2e6cf]">{title}</h3>
-                    </div>
-                    <p className="mt-3 text-sm leading-6 text-[#a99c83]">
-                      {text}
-                    </p>
+                <div className="rounded-[1.5rem] border border-[#2d2416] bg-[#131313] p-6">
+                  <div className="flex items-center gap-3">
+                    <Calendar className="h-5 w-5 text-[#b6924f]" />
+                    <EditableText
+                      isAdmin={isAdmin}
+                      value={tc("eventCardTitle")}
+                      onSave={(v) => saveContentField("eventCardTitle", v)}
+                      className="text-lg text-[#f2e6cf]"
+                      as="h3"
+                      modifyLabel={tc("modify")}
+                      saveLabel={tc("save")}
+                      cancelLabel={tc("cancel")}
+                    />
                   </div>
-                ))}
+                  <EditableText
+                    isAdmin={isAdmin}
+                    value={tc("eventCardText")}
+                    onSave={(v) => saveContentField("eventCardText", v)}
+                    className="mt-3 text-sm leading-6 text-[#a99c83]"
+                    as="p"
+                    multiline
+                    modifyLabel={tc("modify")}
+                    saveLabel={tc("save")}
+                    cancelLabel={tc("cancel")}
+                  />
+                </div>
+
+                <div className="rounded-[1.5rem] border border-[#2d2416] bg-[#131313] p-6">
+                  <div className="flex items-center gap-3">
+                    <Mail className="h-5 w-5 text-[#b6924f]" />
+                    <EditableText
+                      isAdmin={isAdmin}
+                      value={tc("notesTitle")}
+                      onSave={(v) => saveContentField("notesTitle", v)}
+                      className="text-lg text-[#f2e6cf]"
+                      as="h3"
+                      modifyLabel={tc("modify")}
+                      saveLabel={tc("save")}
+                      cancelLabel={tc("cancel")}
+                    />
+                  </div>
+                  <EditableText
+                    isAdmin={isAdmin}
+                    value={tc("notesText")}
+                    onSave={(v) => saveContentField("notesText", v)}
+                    className="mt-3 text-sm leading-6 text-[#a99c83]"
+                    as="p"
+                    multiline
+                    modifyLabel={tc("modify")}
+                    saveLabel={tc("save")}
+                    cancelLabel={tc("cancel")}
+                  />
+                </div>
+
+                <div className="rounded-[1.5rem] border border-[#2d2416] bg-[#131313] p-6">
+                  <div className="flex items-center gap-3">
+                    <Wrench className="h-5 w-5 text-[#b6924f]" />
+                    <EditableText
+                      isAdmin={isAdmin}
+                      value={tc("atelierTitle")}
+                      onSave={(v) => saveContentField("atelierTitle", v)}
+                      className="text-lg text-[#f2e6cf]"
+                      as="h3"
+                      modifyLabel={tc("modify")}
+                      saveLabel={tc("save")}
+                      cancelLabel={tc("cancel")}
+                    />
+                  </div>
+                  <EditableText
+                    isAdmin={isAdmin}
+                    value={tc("atelierText")}
+                    onSave={(v) => saveContentField("atelierText", v)}
+                    className="mt-3 text-sm leading-6 text-[#a99c83]"
+                    as="p"
+                    multiline
+                    modifyLabel={tc("modify")}
+                    saveLabel={tc("save")}
+                    cancelLabel={tc("cancel")}
+                  />
+                </div>
               </div>
             </>
           )}
@@ -1995,8 +2114,28 @@ export default function TheHeritageDriversLandingPage() {
                           {event.max_participants && (
                             <p className="mt-4 text-sm text-[#b8ad96]">
                               {tc("eventMaxParticipantsLabel")}:{" "}
+                              {getParticipantsForEvent(event.id).length}
+                              {" / "}
                               {event.max_participants}
                             </p>
+                          )}
+
+                          {getParticipantsForEvent(event.id).length > 0 && (
+                            <div className="mt-4">
+                              <p className="text-sm text-[#d9ccb1]">
+                                {tc("eventParticipants")}:
+                              </p>
+                              <div className="mt-2 flex flex-wrap gap-2">
+                                {getParticipantsForEvent(event.id).map((participant) => (
+                                  <span
+                                    key={participant.id}
+                                    className="rounded-full border border-[#3b311d] px-3 py-1 text-xs text-[#cdbd9f]"
+                                  >
+                                    {participant.full_name || participant.user_id}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
                           )}
 
                           {event.attachment_url && (
@@ -2273,7 +2412,8 @@ export default function TheHeritageDriversLandingPage() {
                               </p>
                               {event.archived_at && (
                                 <p className="mt-2 text-xs uppercase tracking-[0.2em] text-[#8f836d]">
-                                  {tc("archivedAt")}: {formatDateSafe(event.archived_at, lang)}
+                                  {tc("archivedAt")}:{" "}
+                                  {formatDateSafe(event.archived_at, lang)}
                                 </p>
                               )}
                             </div>
@@ -2647,6 +2787,92 @@ export default function TheHeritageDriversLandingPage() {
           </div>
         )}
       </main>
+
+      <footer className="border-t border-[#2a2213] bg-[#0b0b0b]">
+        <div className="mx-auto grid max-w-7xl gap-8 px-6 py-12 lg:grid-cols-3">
+          <div>
+            <EditableText
+              isAdmin={isAdmin}
+              value={tc("footerImprintTitle")}
+              onSave={(v) => saveContentField("footerImprintTitle", v)}
+              className="text-sm uppercase tracking-[0.3em] text-[#b6924f]"
+              as="h4"
+              modifyLabel={tc("modify")}
+              saveLabel={tc("save")}
+              cancelLabel={tc("cancel")}
+            />
+            <EditableText
+              isAdmin={isAdmin}
+              value={tc("footerImprintText")}
+              onSave={(v) => saveContentField("footerImprintText", v)}
+              className="mt-4 text-sm leading-6 text-[#a99c83]"
+              as="p"
+              multiline
+              modifyLabel={tc("modify")}
+              saveLabel={tc("save")}
+              cancelLabel={tc("cancel")}
+            />
+            <Link
+              href="/impressum"
+              className="mt-4 inline-block text-sm text-[#d7bf8a] underline underline-offset-4"
+            >
+              {tc("footerImprintLink")}
+            </Link>
+          </div>
+
+          <div>
+            <EditableText
+              isAdmin={isAdmin}
+              value={tc("footerAffiliationTitle")}
+              onSave={(v) => saveContentField("footerAffiliationTitle", v)}
+              className="text-sm uppercase tracking-[0.3em] text-[#b6924f]"
+              as="h4"
+              modifyLabel={tc("modify")}
+              saveLabel={tc("save")}
+              cancelLabel={tc("cancel")}
+            />
+            <EditableText
+              isAdmin={isAdmin}
+              value={tc("footerAffiliationText")}
+              onSave={(v) => saveContentField("footerAffiliationText", v)}
+              className="mt-4 text-sm leading-6 text-[#a99c83]"
+              as="p"
+              multiline
+              modifyLabel={tc("modify")}
+              saveLabel={tc("save")}
+              cancelLabel={tc("cancel")}
+            />
+          </div>
+
+          <div>
+            <EditableText
+              isAdmin={isAdmin}
+              value={tc("footerSponsorsTitle")}
+              onSave={(v) => saveContentField("footerSponsorsTitle", v)}
+              className="text-sm uppercase tracking-[0.3em] text-[#b6924f]"
+              as="h4"
+              modifyLabel={tc("modify")}
+              saveLabel={tc("save")}
+              cancelLabel={tc("cancel")}
+            />
+            <EditableText
+              isAdmin={isAdmin}
+              value={tc("footerSponsorsText")}
+              onSave={(v) => saveContentField("footerSponsorsText", v)}
+              className="mt-4 text-sm leading-6 text-[#a99c83]"
+              as="p"
+              multiline
+              modifyLabel={tc("modify")}
+              saveLabel={tc("save")}
+              cancelLabel={tc("cancel")}
+            />
+          </div>
+        </div>
+
+        <div className="border-t border-[#1e1a12] px-6 py-4 text-center text-xs uppercase tracking-[0.25em] text-[#7f735c]">
+          {tc("footerBottomLine")}
+        </div>
+      </footer>
     </div>
   );
 }
