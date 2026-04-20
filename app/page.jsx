@@ -13,6 +13,7 @@ import {
   CheckCircle2,
   AlertCircle,
   Trash2,
+  Archive,
   Image as ImageIcon,
   Paperclip,
   Save,
@@ -126,6 +127,10 @@ const fallbackContent = {
     eventUpcoming: "Upcoming Event",
     eventOpenAttachment: "Open attachment",
     eventDelete: "Delete Event",
+    eventArchive: "Archive Event",
+    archivedEventsTitle: "Archived Events",
+    archivedEventsEmpty: "No archived events yet.",
+    archivedAt: "Archived on",
     approvalPendingTitle: "Membership Awaiting Approval",
     approvalPendingText:
       "Your account has been created successfully. Access to the private members area is granted manually once your membership has been reviewed and approved.",
@@ -232,6 +237,10 @@ const fallbackContent = {
     eventUpcoming: "Anstehendes Event",
     eventOpenAttachment: "Anhang öffnen",
     eventDelete: "Event löschen",
+    eventArchive: "Event archivieren",
+    archivedEventsTitle: "Archivierte Events",
+    archivedEventsEmpty: "Noch keine archivierten Events vorhanden.",
+    archivedAt: "Archiviert am",
     approvalPendingTitle: "Mitgliedschaft in Prüfung",
     approvalPendingText:
       "Ihr Konto wurde erfolgreich erstellt. Der Zugang zum privaten Mitgliederbereich wird nach Prüfung und Freigabe Ihrer Mitgliedschaft manuell erteilt.",
@@ -271,7 +280,9 @@ const uiMessages = {
     eventCreateSuccess: "Event created successfully.",
     eventUpdateSuccess: "Event updated successfully.",
     eventDeleteSuccess: "Event deleted successfully.",
+    eventArchiveSuccess: "Event archived successfully.",
     eventDeleteConfirm: "Do you really want to delete this event?",
+    eventArchiveConfirm: "Do you really want to archive this event?",
     profileUpdateSuccess: "Profile name updated successfully.",
     emailUpdateSuccess:
       "Email update requested. Please confirm via the email sent by Supabase.",
@@ -305,7 +316,9 @@ const uiMessages = {
     eventCreateSuccess: "Event erfolgreich erstellt.",
     eventUpdateSuccess: "Event erfolgreich aktualisiert.",
     eventDeleteSuccess: "Event erfolgreich gelöscht.",
+    eventArchiveSuccess: "Event erfolgreich archiviert.",
     eventDeleteConfirm: "Soll dieses Event wirklich gelöscht werden?",
+    eventArchiveConfirm: "Soll dieses Event wirklich archiviert werden?",
     profileUpdateSuccess: "Anzeigename erfolgreich aktualisiert.",
     emailUpdateSuccess:
       "Änderung der E-Mail angestossen. Bitte die Bestätigungs-E-Mail von Supabase prüfen.",
@@ -528,6 +541,18 @@ function EditablePlaceholderField({
   );
 }
 
+function formatDateSafe(dateValue, lang = "en") {
+  if (!dateValue) return "";
+  const date = new Date(dateValue);
+  if (Number.isNaN(date.getTime())) return dateValue;
+
+  return new Intl.DateTimeFormat(lang === "de" ? "de-CH" : "en-GB", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(date);
+}
+
 export default function TheHeritageDriversLandingPage() {
   const [lang, setLang] = useState("en");
   const [showLogin, setShowLogin] = useState(false);
@@ -547,6 +572,7 @@ export default function TheHeritageDriversLandingPage() {
   const [password, setPassword] = useState("");
 
   const [events, setEvents] = useState([]);
+  const [archivedEvents, setArchivedEvents] = useState([]);
   const [eventsLoading, setEventsLoading] = useState(false);
 
   const [participants, setParticipants] = useState([]);
@@ -602,6 +628,7 @@ export default function TheHeritageDriversLandingPage() {
     setProfile(null);
     setProfileLoaded(false);
     setEvents([]);
+    setArchivedEvents([]);
     setParticipants([]);
     setParticipantsView(null);
     setEditingEventId(null);
@@ -667,7 +694,7 @@ export default function TheHeritageDriversLandingPage() {
     setWebsiteContent(next);
   };
 
-  const loadProfile = async (userId) => {
+  const loadProfile = async (userId, currentSession = session) => {
     if (!supabase || !userId) {
       setProfileLoaded(true);
       return null;
@@ -681,23 +708,57 @@ export default function TheHeritageDriversLandingPage() {
 
     setProfileLoaded(true);
 
-    if (error) return null;
+    if (error) {
+      setProfile(null);
+      syncAccountFields(null, currentSession);
+      return null;
+    }
 
     setProfile(data);
-    syncAccountFields(data, session);
+    syncAccountFields(data, currentSession);
     return data;
   };
 
-  const loadEvents = async () => {
+  const loadEvents = async (currentProfile = profile) => {
     if (!supabase) return;
 
     setEventsLoading(true);
-    const { data, error } = await supabase
+
+    const baseActiveQuery = supabase
       .from("events")
       .select("*")
+      .eq("archived", false)
       .order("event_date", { ascending: true });
 
-    if (!error && data) setEvents(data);
+    const activeQuery =
+      currentProfile?.role === "admin"
+        ? baseActiveQuery
+        : baseActiveQuery.eq("is_active", true);
+
+    const { data: activeData, error: activeError } = await activeQuery;
+
+    if (!activeError && activeData) {
+      setEvents(activeData);
+    } else {
+      setEvents([]);
+    }
+
+    if (currentProfile?.role === "admin") {
+      const { data: archivedData, error: archivedError } = await supabase
+        .from("events")
+        .select("*")
+        .eq("archived", true)
+        .order("event_date", { ascending: false });
+
+      if (!archivedError && archivedData) {
+        setArchivedEvents(archivedData);
+      } else {
+        setArchivedEvents([]);
+      }
+    } else {
+      setArchivedEvents([]);
+    }
+
     setEventsLoading(false);
   };
 
@@ -709,6 +770,7 @@ export default function TheHeritageDriversLandingPage() {
       .select("id, event_id, user_id, status, created_at");
 
     if (!error && data) setParticipants(data);
+    if (error) setParticipants([]);
   };
 
   const loadEnquiries = async () => {
@@ -721,6 +783,7 @@ export default function TheHeritageDriversLandingPage() {
       .order("created_at", { ascending: false });
 
     if (!error && data) setEnquiries(data);
+    if (error) setEnquiries([]);
     setEnquiriesLoading(false);
   };
 
@@ -738,7 +801,10 @@ export default function TheHeritageDriversLandingPage() {
       data.forEach((row) => {
         drafts[row.id] = row.role || "member";
       });
-      setMemberRoleDrafts(drafts);
+      setMemberRoleDrafts((prev) => ({
+        ...drafts,
+        ...prev,
+      }));
     }
   };
 
@@ -752,15 +818,16 @@ export default function TheHeritageDriversLandingPage() {
 
     if (!error && data) {
       setAuthUsersAdmin(data);
+    } else {
+      setAuthUsersAdmin([]);
     }
   };
 
   const loadAppData = async (currentSession) => {
     if (!currentSession?.user) return;
 
-    const loadedProfile = await loadProfile(currentSession.user.id);
-    syncAccountFields(loadedProfile, currentSession);
-    await loadEvents();
+    const loadedProfile = await loadProfile(currentSession.user.id, currentSession);
+    await loadEvents(loadedProfile);
     await loadParticipants();
 
     if (loadedProfile?.role === "admin") {
@@ -792,9 +859,8 @@ export default function TheHeritageDriversLandingPage() {
 
       if (!mounted) return;
 
-      setSession(currentSession);
-
       if (currentSession?.user) {
+        setSession(currentSession);
         await loadAppData(currentSession);
       } else {
         clearAppState();
@@ -810,10 +876,9 @@ export default function TheHeritageDriversLandingPage() {
     } = supabase.auth.onAuthStateChange(async (_event, currentSession) => {
       if (!mounted) return;
 
-      setSession(currentSession);
-      setProfileLoaded(false);
-
       if (currentSession?.user) {
+        setSession(currentSession);
+        setProfileLoaded(false);
         await loadAppData(currentSession);
       } else {
         clearAppState();
@@ -962,12 +1027,21 @@ export default function TheHeritageDriversLandingPage() {
     }
 
     if (data.user?.id) {
-      await supabase.from("member_profiles").upsert({
+      const { error: profileError } = await supabase.from("member_profiles").upsert({
         id: data.user.id,
         full_name: fullName.trim(),
         role: "member",
         approved: false,
       });
+
+      if (profileError) {
+        setLoading(false);
+        setStatus({
+          type: "error",
+          message: profileError.message || messages.genericError,
+        });
+        return;
+      }
     }
 
     setLoading(false);
@@ -1015,7 +1089,7 @@ export default function TheHeritageDriversLandingPage() {
       return;
     }
 
-    await loadProfile(session.user.id);
+    await loadProfile(session.user.id, session);
     setStatus({ type: "success", message: messages.profileUpdateSuccess });
   };
 
@@ -1075,6 +1149,11 @@ export default function TheHeritageDriversLandingPage() {
       return;
     }
 
+    if (!eventForm.title.trim() || !eventForm.event_date) {
+      setStatus({ type: "error", message: messages.eventCreateError });
+      return;
+    }
+
     setEventSaving(true);
 
     try {
@@ -1105,13 +1184,16 @@ export default function TheHeritageDriversLandingPage() {
         image_url: uploadedImageUrl,
         attachment_name: uploadedAttachmentName,
         attachment_url: uploadedAttachmentUrl,
-        created_by: session.user.id,
         is_active: true,
+        archived: false,
       };
 
       const response = editingEventId
         ? await supabase.from("events").update(payload).eq("id", editingEventId)
-        : await supabase.from("events").insert(payload);
+        : await supabase.from("events").insert({
+            ...payload,
+            created_by: session.user.id,
+          });
 
       if (response.error) {
         setStatus({
@@ -1133,7 +1215,7 @@ export default function TheHeritageDriversLandingPage() {
       setEventImageFile(null);
       setEventAttachmentFile(null);
       setEditingEventId(null);
-      await loadEvents();
+      await loadEvents(profile);
     } catch (err) {
       setStatus({
         type: "error",
@@ -1171,7 +1253,44 @@ export default function TheHeritageDriversLandingPage() {
 
     setParticipantsView(null);
     setStatus({ type: "success", message: messages.eventDeleteSuccess });
-    await loadEvents();
+    await loadEvents(profile);
+  };
+
+  const handleArchiveEvent = async (eventId) => {
+    resetStatus();
+
+    if (!supabase || !session?.user || !isAdmin) {
+      setStatus({ type: "error", message: messages.notAuthorized });
+      return;
+    }
+
+    const confirmed = window.confirm(messages.eventArchiveConfirm);
+    if (!confirmed) return;
+
+    const { error } = await supabase
+      .from("events")
+      .update({
+        archived: true,
+        archived_at: new Date().toISOString(),
+        is_active: false,
+      })
+      .eq("id", eventId);
+
+    if (error) {
+      setStatus({ type: "error", message: error.message });
+      return;
+    }
+
+    if (editingEventId === eventId) {
+      setEditingEventId(null);
+      setEventForm(emptyEventForm);
+      setEventImageFile(null);
+      setEventAttachmentFile(null);
+    }
+
+    setParticipantsView(null);
+    setStatus({ type: "success", message: messages.eventArchiveSuccess });
+    await loadEvents(profile);
   };
 
   const handleEditEvent = (event) => {
@@ -1404,6 +1523,17 @@ export default function TheHeritageDriversLandingPage() {
   const missingProfileUsers = authUsersAdmin.filter(
     (authUser) => !memberProfilesAdmin.some((member) => member.id === authUser.id)
   );
+
+  if (initializing) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[#0a0a0a] text-[#e8dcc0]">
+        <div className="flex items-center gap-3">
+          <Loader2 className="h-5 w-5 animate-spin text-[#b6924f]" />
+          <span>{lang === "de" ? "Initialisierung..." : "Initializing..."}</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-[#e8dcc0]">
@@ -1815,7 +1945,7 @@ export default function TheHeritageDriversLandingPage() {
                             {event.title}
                           </h4>
                           <p className="mt-2 text-sm text-[#a99c83]">
-                            {event.event_date}
+                            {formatDateSafe(event.event_date, lang)}
                             {event.location ? ` · ${event.location}` : ""}
                           </p>
 
@@ -1887,6 +2017,14 @@ export default function TheHeritageDriversLandingPage() {
                                 className="rounded-full border border-[#3b311d] px-4 py-2 text-xs uppercase tracking-[0.18em] text-[#f2e6cf] transition hover:border-[#b6924f]"
                               >
                                 {tc("eventParticipants")}
+                              </button>
+
+                              <button
+                                onClick={() => handleArchiveEvent(event.id)}
+                                className="inline-flex items-center gap-2 rounded-full border border-[#6e5a2c] px-4 py-2 text-xs uppercase tracking-[0.18em] text-[#f2e6cf] transition hover:border-[#b6924f] hover:text-white"
+                              >
+                                <Archive className="h-3.5 w-3.5" />
+                                {tc("eventArchive")}
                               </button>
 
                               <button
@@ -2074,6 +2212,43 @@ export default function TheHeritageDriversLandingPage() {
                           ))
                         )}
                       </div>
+                    </div>
+                  )}
+
+                  {isAdmin && (
+                    <div className="mt-10 rounded-[1.5rem] border border-[#2d2416] bg-[#0f0f0f] p-6">
+                      <div className="flex items-center gap-3">
+                        <Archive className="h-5 w-5 text-[#b6924f]" />
+                        <h3 className="text-xl text-[#f2e6cf]">
+                          {tc("archivedEventsTitle")}
+                        </h3>
+                      </div>
+
+                      {archivedEvents.length === 0 ? (
+                        <p className="mt-4 text-sm text-[#b8ad96]">
+                          {tc("archivedEventsEmpty")}
+                        </p>
+                      ) : (
+                        <div className="mt-6 grid gap-4 lg:grid-cols-2">
+                          {archivedEvents.map((event) => (
+                            <div
+                              key={`archived-${event.id}`}
+                              className="rounded-xl border border-[#2d2416] bg-[#131313] p-4"
+                            >
+                              <p className="text-lg text-[#f2e6cf]">{event.title}</p>
+                              <p className="mt-2 text-sm text-[#a99c83]">
+                                {formatDateSafe(event.event_date, lang)}
+                                {event.location ? ` · ${event.location}` : ""}
+                              </p>
+                              {event.archived_at && (
+                                <p className="mt-2 text-xs uppercase tracking-[0.2em] text-[#8f836d]">
+                                  {tc("archivedAt")}: {formatDateSafe(event.archived_at, lang)}
+                                </p>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
