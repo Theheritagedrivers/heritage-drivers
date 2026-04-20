@@ -696,6 +696,7 @@ export default function TheHeritageDriversLandingPage() {
 
   const loadProfile = async (userId, currentSession = session) => {
     if (!supabase || !userId) {
+      setProfile(null);
       setProfileLoaded(true);
       return null;
     }
@@ -704,19 +705,20 @@ export default function TheHeritageDriversLandingPage() {
       .from("member_profiles")
       .select("id, full_name, role, approved")
       .eq("id", userId)
-      .single();
-
-    setProfileLoaded(true);
+      .maybeSingle();
 
     if (error) {
+      console.error("loadProfile error:", error);
       setProfile(null);
       syncAccountFields(null, currentSession);
+      setProfileLoaded(true);
       return null;
     }
 
-    setProfile(data);
-    syncAccountFields(data, currentSession);
-    return data;
+    setProfile(data || null);
+    syncAccountFields(data || null, currentSession);
+    setProfileLoaded(true);
+    return data || null;
   };
 
   const loadEvents = async (currentProfile = profile) => {
@@ -826,7 +828,11 @@ export default function TheHeritageDriversLandingPage() {
   const loadAppData = async (currentSession) => {
     if (!currentSession?.user) return;
 
-    const loadedProfile = await loadProfile(currentSession.user.id, currentSession);
+    const loadedProfile = await loadProfile(
+      currentSession.user.id,
+      currentSession
+    );
+
     await loadEvents(loadedProfile);
     await loadParticipants();
 
@@ -857,11 +863,21 @@ export default function TheHeritageDriversLandingPage() {
         data: { session: currentSession },
       } = await supabase.auth.getSession();
 
+      const {
+        data: { user: currentUser },
+      } = await supabase.auth.getUser();
+
       if (!mounted) return;
 
-      if (currentSession?.user) {
-        setSession(currentSession);
-        await loadAppData(currentSession);
+      if (currentSession?.user && currentUser) {
+        const mergedSession = {
+          ...currentSession,
+          user: currentUser,
+        };
+
+        setSession(mergedSession);
+        setProfileLoaded(false);
+        await loadAppData(mergedSession);
       } else {
         clearAppState();
       }
@@ -877,9 +893,17 @@ export default function TheHeritageDriversLandingPage() {
       if (!mounted) return;
 
       if (currentSession?.user) {
-        setSession(currentSession);
+        const {
+          data: { user: currentUser },
+        } = await supabase.auth.getUser();
+
+        const mergedSession = currentUser
+          ? { ...currentSession, user: currentUser }
+          : currentSession;
+
+        setSession(mergedSession);
         setProfileLoaded(false);
-        await loadAppData(currentSession);
+        await loadAppData(mergedSession);
       } else {
         clearAppState();
       }
@@ -1027,14 +1051,21 @@ export default function TheHeritageDriversLandingPage() {
     }
 
     if (data.user?.id) {
-      const { error: profileError } = await supabase.from("member_profiles").upsert({
-        id: data.user.id,
-        full_name: fullName.trim(),
-        role: "member",
-        approved: false,
-      });
+      const { error: profileError } = await supabase
+        .from("member_profiles")
+        .insert({
+          id: data.user.id,
+          full_name: fullName.trim(),
+          role: "member",
+          approved: false,
+        });
 
-      if (profileError) {
+      if (
+        profileError &&
+        !String(profileError.message || "")
+          .toLowerCase()
+          .includes("duplicate")
+      ) {
         setLoading(false);
         setStatus({
           type: "error",
@@ -1460,7 +1491,7 @@ export default function TheHeritageDriversLandingPage() {
 
     const selectedRole = memberRoleDrafts[userId] || "member";
 
-    const { error } = await supabase.from("member_profiles").upsert({
+    const { error } = await supabase.from("member_profiles").insert({
       id: userId,
       full_name: defaultName,
       role: selectedRole,
@@ -1866,7 +1897,7 @@ export default function TheHeritageDriversLandingPage() {
           </section>
         )}
 
-        {isLoggedIn && profileLoaded && !hasMemberAccess && (
+        {isLoggedIn && profileLoaded && profile && !hasMemberAccess && (
           <section className="mt-24">
             <div className="rounded-[2rem] border border-[#4b2f20] bg-[#16100d] p-8">
               <EditableText
