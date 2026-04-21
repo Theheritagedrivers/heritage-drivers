@@ -516,49 +516,7 @@ function EditablePlaceholderField({
         />
       )}
 
-      {isAdmin && (
-        <div className="mt-2">
-          {!isEditingPlaceholder ? (
-            <button
-              type="button"
-              onClick={() => setIsEditingPlaceholder(true)}
-              className="rounded-full border border-[#b6924f] px-3 py-1 text-[10px] uppercase tracking-[0.2em] text-[#f2e6cf]"
-            >
-              {modifyLabel}
-            </button>
-          ) : (
-            <div className="space-y-2">
-              <input
-                value={draftPlaceholder}
-                onChange={(e) => setDraftPlaceholder(e.target.value)}
-                className="w-full rounded-2xl border border-[#342a1a] bg-black/60 p-3 text-[#efe2c5] outline-none"
-              />
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={async () => {
-                    await onSave(draftPlaceholder);
-                    setIsEditingPlaceholder(false);
-                  }}
-                  className="rounded-full bg-[#b6924f] px-3 py-1 text-[10px] uppercase tracking-[0.2em] text-black"
-                >
-                  {saveLabel}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setDraftPlaceholder(value || "");
-                    setIsEditingPlaceholder(false);
-                  }}
-                  className="rounded-full border border-[#3b311d] px-3 py-1 text-[10px] uppercase tracking-[0.2em] text-[#f2e6cf]"
-                >
-                  {cancelLabel}
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
+
     </div>
   );
 }
