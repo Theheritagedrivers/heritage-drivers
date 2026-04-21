@@ -18,6 +18,7 @@ import {
   Paperclip,
   Save,
   Pencil,
+  FileText,
 } from "lucide-react";
 import { createClient } from "@supabase/supabase-js";
 
@@ -50,6 +51,7 @@ const fallbackContent = {
     navSociety: "Society",
     navPhilosophy: "Philosophy",
     navMembership: "Membership",
+    navAdminPages: "Admin Pages",
     heroTag: "A Private Drivers Society",
     heroTitle: "Heritage motoring,\nquietly understood.",
     heroText:
@@ -167,6 +169,7 @@ const fallbackContent = {
     navSociety: "Gesellschaft",
     navPhilosophy: "Philosophie",
     navMembership: "Mitgliedschaft",
+    navAdminPages: "Admin Inhalte",
     heroTag: "Eine private Fahrergesellschaft",
     heroTitle: "Automobile Kultur,\nstill verstanden.",
     heroText:
@@ -1653,6 +1656,16 @@ export default function TheHeritageDriversLandingPage() {
                 {tc("navMembership")}
               </Link>
 
+              {isAdmin && (
+                <Link
+                  href="/admin/pages"
+                  className="inline-flex items-center gap-2 rounded-full border border-[#b6924f] px-4 py-2 text-xs uppercase tracking-[0.22em] text-[#e8dcc0] transition hover:bg-[#b6924f] hover:text-black"
+                >
+                  <FileText className="h-3.5 w-3.5" />
+                  {tc("navAdminPages")}
+                </Link>
+              )}
+
               {!isLoggedIn ? (
                 <button
                   onClick={() => {
@@ -2059,12 +2072,24 @@ export default function TheHeritageDriversLandingPage() {
                   </p>
                 </div>
 
-                <button
-                  onClick={handleLogout}
-                  className="rounded-full border border-[#3b311d] px-5 py-3 text-sm uppercase tracking-[0.22em] text-[#f2e6cf] transition hover:border-[#b6924f]"
-                >
-                  {lang === "en" ? "Sign Out" : "Abmelden"}
-                </button>
+                <div className="flex flex-wrap gap-3">
+                  {isAdmin && (
+                    <Link
+                      href="/admin/pages"
+                      className="inline-flex items-center gap-2 rounded-full border border-[#b6924f] px-5 py-3 text-sm uppercase tracking-[0.22em] text-[#f2e6cf] transition hover:bg-[#b6924f] hover:text-black"
+                    >
+                      <FileText className="h-4 w-4" />
+                      {tc("navAdminPages")}
+                    </Link>
+                  )}
+
+                  <button
+                    onClick={handleLogout}
+                    className="rounded-full border border-[#3b311d] px-5 py-3 text-sm uppercase tracking-[0.22em] text-[#f2e6cf] transition hover:border-[#b6924f]"
+                  >
+                    {lang === "en" ? "Sign Out" : "Abmelden"}
+                  </button>
+                </div>
               </div>
 
               <div className="mt-8 grid gap-6">
@@ -2514,10 +2539,22 @@ export default function TheHeritageDriversLandingPage() {
 
                 {isAdmin && (
                   <div className="rounded-[1.75rem] border border-[#2d2416] bg-[#131313] p-8">
-                    <h3 className="text-xl text-[#f2e6cf]">{tc("adminTitle")}</h3>
-                    <p className="mt-3 text-sm leading-6 text-[#a99c83]">
-                      {tc("adminSubtitle")}
-                    </p>
+                    <div className="flex flex-wrap items-center justify-between gap-4">
+                      <div>
+                        <h3 className="text-xl text-[#f2e6cf]">{tc("adminTitle")}</h3>
+                        <p className="mt-3 text-sm leading-6 text-[#a99c83]">
+                          {tc("adminSubtitle")}
+                        </p>
+                      </div>
+
+                      <Link
+                        href="/admin/pages"
+                        className="inline-flex items-center gap-2 rounded-full border border-[#b6924f] px-4 py-2 text-xs uppercase tracking-[0.18em] text-[#f2e6cf] transition hover:bg-[#b6924f] hover:text-black"
+                      >
+                        <FileText className="h-3.5 w-3.5" />
+                        {tc("navAdminPages")}
+                      </Link>
+                    </div>
 
                     <div className="mt-8 grid gap-6 lg:grid-cols-2">
                       <div className="rounded-[1.25rem] border border-[#2d2416] bg-[#0f0f0f] p-5">
