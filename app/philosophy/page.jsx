@@ -2,20 +2,8 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { createClient } from "@supabase/supabase-js";
 import { Loader2, AlertCircle } from "lucide-react";
-
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
-const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
-
-const supabaseConfigured =
-  SUPABASE_URL.startsWith("https://") &&
-  !SUPABASE_URL.includes("YOUR_PROJECT") &&
-  !SUPABASE_ANON_KEY.includes("YOUR_PUBLIC");
-
-const supabase = supabaseConfigured
-  ? createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
-  : null;
+import { supabase, supabaseConfigured } from "@/lib/supabaseClient";
 
 export default function PhilosophyPage() {
   const [page, setPage] = useState(null);
@@ -23,34 +11,46 @@ export default function PhilosophyPage() {
   const [errorMessage, setErrorMessage] = useState("");
 
   useEffect(() => {
+    let mounted = true;
+
+    async function loadPage() {
+      if (!supabaseConfigured || !supabase) {
+        if (!mounted) return;
+        setErrorMessage("Supabase ist nicht korrekt konfiguriert.");
+        setLoading(false);
+        return;
+      }
+
+      try {
+        setLoading(true);
+        setErrorMessage("");
+
+        const { data, error } = await supabase
+          .from("site_pages")
+          .select("title, content")
+          .eq("slug", "philosophy")
+          .maybeSingle();
+
+        if (error) throw error;
+
+        if (!mounted) return;
+        setPage(data || null);
+      } catch (error) {
+        if (!mounted) return;
+        setErrorMessage(
+          error?.message || "Seite konnte nicht geladen werden."
+        );
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    }
+
     loadPage();
+
+    return () => {
+      mounted = false;
+    };
   }, []);
-
-  async function loadPage() {
-    if (!supabase) {
-      setErrorMessage("Supabase ist nicht korrekt konfiguriert.");
-      setLoading(false);
-      return;
-    }
-
-    setLoading(true);
-    setErrorMessage("");
-
-    const { data, error } = await supabase
-      .from("site_pages")
-      .select("title, content")
-      .eq("slug", "philosophy")
-      .maybeSingle();
-
-    if (error) {
-      setErrorMessage(error.message || "Seite konnte nicht geladen werden.");
-      setLoading(false);
-      return;
-    }
-
-    setPage(data || null);
-    setLoading(false);
-  }
 
   if (loading) {
     return (

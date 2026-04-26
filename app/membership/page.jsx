@@ -15,20 +15,79 @@ import {
   Loader2,
   CheckCircle2,
   AlertCircle,
+  Plus,
+  Trash2,
 } from "lucide-react";
-import { createClient } from "@supabase/supabase-js";
+import { supabase, supabaseConfigured } from "@/lib/supabaseClient";
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
-const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
+const DEFAULT_BOARD_COUNT = 6;
 
-const supabaseConfigured =
-  SUPABASE_URL.startsWith("https://") &&
-  !SUPABASE_URL.includes("YOUR_PROJECT") &&
-  !SUPABASE_ANON_KEY.includes("YOUR_PUBLIC");
-
-const supabase = supabaseConfigured
-  ? createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
-  : null;
+const fallbackBoardMembers = {
+  en: [
+    {
+      name: "Simon Frieden",
+      role: "Founder / Board",
+      text: "Responsible for concept, culture, club direction and heritage motoring activities.",
+    },
+    {
+      name: "Board Member",
+      role: "Board",
+      text: "Supporting club development, coordination and selected administrative matters.",
+    },
+    {
+      name: "Board Member",
+      role: "Board",
+      text: "Contributing to continuity, member contact and discreet internal support.",
+    },
+    {
+      name: "Board Member",
+      role: "Board",
+      text: "Supporting the society with selected governance and member-related matters.",
+    },
+    {
+      name: "Board Member",
+      role: "Board",
+      text: "Contributing to events, member relations and the discreet development of the club.",
+    },
+    {
+      name: "Board Member",
+      role: "Board",
+      text: "Supporting continuity, organisation and selected internal matters of the society.",
+    },
+  ],
+  de: [
+    {
+      name: "Simon Frieden",
+      role: "Gründer / Vorstand",
+      text: "Verantwortlich für Konzept, Kultur, Clubausrichtung und die Heritage-Motoring-Aktivitäten.",
+    },
+    {
+      name: "Vorstandsmitglied",
+      role: "Vorstand",
+      text: "Unterstützt die Weiterentwicklung des Clubs, die Koordination und ausgewählte administrative Belange.",
+    },
+    {
+      name: "Vorstandsmitglied",
+      role: "Vorstand",
+      text: "Trägt zur Kontinuität, Mitgliederbetreuung und diskreten internen Unterstützung bei.",
+    },
+    {
+      name: "Vorstandsmitglied",
+      role: "Vorstand",
+      text: "Unterstützt die Gesellschaft in ausgewählten Governance- und Mitgliederbelangen.",
+    },
+    {
+      name: "Vorstandsmitglied",
+      role: "Vorstand",
+      text: "Trägt zu Veranstaltungen, Mitgliederkontakt und der diskreten Weiterentwicklung des Clubs bei.",
+    },
+    {
+      name: "Vorstandsmitglied",
+      role: "Vorstand",
+      text: "Unterstützt Kontinuität, Organisation und ausgewählte interne Belange der Gesellschaft.",
+    },
+  ],
+};
 
 const fallbackContent = {
   en: {
@@ -60,24 +119,13 @@ const fallbackContent = {
     boardTitle: "Board Members",
     boardIntro:
       "The society is represented by a small and focused board, intended to keep administration personal, efficient and close to the spirit of the club.",
-    boardMember1Name: "Simon Frieden",
-    boardMember1Role: "Founder / Board",
-    boardMember1Text:
-      "Responsible for concept, culture, club direction and heritage motoring activities.",
-    boardMember2Name: "Board Member",
-    boardMember2Role: "Board",
-    boardMember2Text:
-      "Supporting club development, coordination and selected administrative matters.",
-    boardMember3Name: "Board Member",
-    boardMember3Role: "Board",
-    boardMember3Text:
-      "Contributing to continuity, member contact and discreet internal support.",
+    addBoardMember: "Add board member",
+    removeBoardMember: "Remove",
     enquiriesTitle: "Membership Enquiries",
     enquiriesText:
       "Enquiries may be submitted discreetly. Formal access and internal participation are subject to review and approval.",
     secureTitle: "Protected Members Area",
-    secureSubtitle:
-      "Reserved for approved members of the society.",
+    secureSubtitle: "Reserved for approved members of the society.",
     internalTitle: "Internal Club Documents",
     internalText:
       "Approved members may access statutes, annual accounts and selected internal documents of the society.",
@@ -143,24 +191,13 @@ const fallbackContent = {
     boardTitle: "Vorstandsmitglieder",
     boardIntro:
       "Die Gesellschaft wird durch einen kleinen, fokussierten Vorstand getragen, um die Organisation persönlich, effizient und nahe am Geist des Clubs zu halten.",
-    boardMember1Name: "Simon Frieden",
-    boardMember1Role: "Gründer / Vorstand",
-    boardMember1Text:
-      "Verantwortlich für Konzept, Kultur, Clubausrichtung und die Heritage-Motoring-Aktivitäten.",
-    boardMember2Name: "Vorstandsmitglied",
-    boardMember2Role: "Vorstand",
-    boardMember2Text:
-      "Unterstützt die Weiterentwicklung des Clubs, die Koordination und ausgewählte administrative Belange.",
-    boardMember3Name: "Vorstandsmitglied",
-    boardMember3Role: "Vorstand",
-    boardMember3Text:
-      "Trägt zur Kontinuität, Mitgliederbetreuung und diskreten internen Unterstützung bei.",
+    addBoardMember: "Vorstandsmitglied hinzufügen",
+    removeBoardMember: "Entfernen",
     enquiriesTitle: "Mitgliedschaftsanfragen",
     enquiriesText:
       "Anfragen können diskret eingereicht werden. Formeller Zugang und interne Teilnahme erfolgen nach Prüfung und Freigabe.",
     secureTitle: "Geschützter Mitgliederbereich",
-    secureSubtitle:
-      "Ausschliesslich für freigegebene Mitglieder der Gesellschaft.",
+    secureSubtitle: "Ausschliesslich für freigegebene Mitglieder der Gesellschaft.",
     internalTitle: "Interne Club-Dokumente",
     internalText:
       "Freigegebene Mitglieder erhalten Zugang zu Statuten, Jahresrechnungen und ausgewählten internen Dokumenten der Gesellschaft.",
@@ -177,8 +214,7 @@ const fallbackContent = {
       "Interne Hinweise, Governance-Informationen und vertrauliche Dokumente für Mitglieder.",
     internalNotesLinkLabel: "Interne Dokumente öffnen",
     loginTitle: "Mitgliederbereich",
-    loginSubtitle:
-      "Ausschliesslich für registrierte Mitglieder der Gesellschaft.",
+    loginSubtitle: "Ausschliesslich für registrierte Mitglieder der Gesellschaft.",
     loginFullName: "Vollständiger Name",
     loginEmail: "E-Mail-Adresse",
     loginPassword: "Passwort",
@@ -368,7 +404,34 @@ export default function MembershipPage() {
     return saved || fallback || "";
   };
 
+  const fallbackCount = fallbackBoardMembers[lang]?.length || DEFAULT_BOARD_COUNT;
+  const savedBoardCount = Number(websiteContent?.[lang]?.boardMemberCount || 0);
+  const boardMemberCount = Math.max(fallbackCount, savedBoardCount || fallbackCount);
+
   const resetStatus = () => setStatus({ type: "", message: "" });
+
+  const clearAuthState = () => {
+    setSession(null);
+    setProfile(null);
+    setProfileLoaded(true);
+  };
+
+  const getBoardFallback = (index, field) => {
+    const member = fallbackBoardMembers[lang]?.[index - 1];
+    if (!member) {
+      if (field === "name") return lang === "de" ? "Vorstandsmitglied" : "Board Member";
+      if (field === "role") return lang === "de" ? "Vorstand" : "Board";
+      return lang === "de"
+        ? "Beschreibung und Aufgabenbereich des Vorstandsmitglieds."
+        : "Description and responsibilities of the board member.";
+    }
+    return member[field] || "";
+  };
+
+  const getBoardValue = (index, field) => {
+    const key = `boardMember${index}${field[0].toUpperCase()}${field.slice(1)}`;
+    return websiteContent?.[lang]?.[key] || getBoardFallback(index, field);
+  };
 
   const saveContentField = async (key, value) => {
     if (!supabase || !session?.user || !isAdmin) return;
@@ -377,7 +440,7 @@ export default function MembershipPage() {
       {
         content_key: `membership_${key}`,
         lang,
-        content_value: value,
+        content_value: String(value),
         updated_by: session.user.id,
       },
       { onConflict: "content_key,lang" }
@@ -392,7 +455,7 @@ export default function MembershipPage() {
       ...prev,
       [lang]: {
         ...(prev[lang] || {}),
-        [key]: value,
+        [key]: String(value),
       },
     }));
 
@@ -432,6 +495,7 @@ export default function MembershipPage() {
       .maybeSingle();
 
     if (error) {
+      console.error("Membership loadProfile error:", error);
       setProfile(null);
       setProfileLoaded(true);
       return null;
@@ -445,38 +509,35 @@ export default function MembershipPage() {
   useEffect(() => {
     if (!supabase) {
       setInitializing(false);
+      setProfileLoaded(true);
       return;
     }
 
     let mounted = true;
 
     const init = async () => {
-      await loadWebsiteContent();
+      try {
+        await loadWebsiteContent();
 
-      const {
-        data: { session: currentSession },
-      } = await supabase.auth.getSession();
+        const {
+          data: { session: currentSession },
+        } = await supabase.auth.getSession();
 
-      const {
-        data: { user: currentUser },
-      } = await supabase.auth.getUser();
+        if (!mounted) return;
 
-      if (!mounted) return;
-
-      if (currentSession?.user && currentUser) {
-        const mergedSession = {
-          ...currentSession,
-          user: currentUser,
-        };
-        setSession(mergedSession);
-        await loadProfile(mergedSession.user.id);
-      } else {
-        setSession(null);
-        setProfile(null);
-        setProfileLoaded(true);
+        if (currentSession?.user) {
+          setSession(currentSession);
+          setProfileLoaded(false);
+          await loadProfile(currentSession.user.id);
+        } else {
+          clearAuthState();
+        }
+      } catch (error) {
+        console.error("Membership initialization error:", error);
+        clearAuthState();
+      } finally {
+        if (mounted) setInitializing(false);
       }
-
-      if (mounted) setInitializing(false);
     };
 
     init();
@@ -486,22 +547,17 @@ export default function MembershipPage() {
     } = supabase.auth.onAuthStateChange(async (_event, currentSession) => {
       if (!mounted) return;
 
-      if (currentSession?.user) {
-        const {
-          data: { user: currentUser },
-        } = await supabase.auth.getUser();
-
-        const mergedSession = currentUser
-          ? { ...currentSession, user: currentUser }
-          : currentSession;
-
-        setSession(mergedSession);
-        setProfileLoaded(false);
-        await loadProfile(mergedSession.user.id);
-      } else {
-        setSession(null);
-        setProfile(null);
-        setProfileLoaded(true);
+      try {
+        if (currentSession?.user) {
+          setSession(currentSession);
+          setProfileLoaded(false);
+          await loadProfile(currentSession.user.id);
+        } else {
+          clearAuthState();
+        }
+      } catch (error) {
+        console.error("Membership auth state error:", error);
+        clearAuthState();
       }
     });
 
@@ -527,10 +583,7 @@ export default function MembershipPage() {
     setLoading(false);
 
     if (error) {
-      setStatus({
-        type: "error",
-        message: error.message || messages.genericError,
-      });
+      setStatus({ type: "error", message: error.message || messages.genericError });
       return;
     }
 
@@ -559,20 +612,26 @@ export default function MembershipPage() {
 
     if (error) {
       setLoading(false);
-      setStatus({
-        type: "error",
-        message: error.message || messages.genericError,
-      });
+      setStatus({ type: "error", message: error.message || messages.genericError });
       return;
     }
 
     if (data.user?.id) {
-      await supabase.from("member_profiles").insert({
+      const { error: profileError } = await supabase.from("member_profiles").insert({
         id: data.user.id,
         full_name: fullName.trim(),
         role: "member",
         approved: false,
       });
+
+      if (
+        profileError &&
+        !String(profileError.message || "").toLowerCase().includes("duplicate")
+      ) {
+        setLoading(false);
+        setStatus({ type: "error", message: profileError.message || messages.genericError });
+        return;
+      }
     }
 
     setLoading(false);
@@ -584,25 +643,50 @@ export default function MembershipPage() {
   const handleLogout = async () => {
     resetStatus();
 
-    if (!supabase) {
-      setSession(null);
-      setProfile(null);
-      return;
+    if (supabase) {
+      await supabase.auth.signOut();
     }
 
-    const { error } = await supabase.auth.signOut();
-
-    if (error) {
-      setStatus({
-        type: "error",
-        message: error.message || messages.genericError,
-      });
-      return;
-    }
+    localStorage.removeItem("heritage-drivers-auth");
+    sessionStorage.clear();
 
     setSession(null);
     setProfile(null);
-    setStatus({ type: "success", message: messages.logoutSuccess });
+    setProfileLoaded(true);
+    setPassword("");
+
+    window.location.href = "/membership";
+  };
+
+  const handleAddBoardMember = async () => {
+    const nextIndex = boardMemberCount + 1;
+    await saveContentField("boardMemberCount", nextIndex);
+    await saveContentField(`boardMember${nextIndex}Name`, getBoardFallback(nextIndex, "name"));
+    await saveContentField(`boardMember${nextIndex}Role`, getBoardFallback(nextIndex, "role"));
+    await saveContentField(`boardMember${nextIndex}Text`, getBoardFallback(nextIndex, "text"));
+  };
+
+  const handleRemoveBoardMember = async (index) => {
+    if (!isAdmin || index < 1 || boardMemberCount <= 1) return;
+
+    const nextCount = boardMemberCount - 1;
+    const updates = {};
+
+    for (let i = index; i <= nextCount; i += 1) {
+      updates[`boardMember${i}Name`] = getBoardValue(i + 1, "name");
+      updates[`boardMember${i}Role`] = getBoardValue(i + 1, "role");
+      updates[`boardMember${i}Text`] = getBoardValue(i + 1, "text");
+    }
+
+    updates.boardMemberCount = String(nextCount);
+
+    try {
+      for (const [key, value] of Object.entries(updates)) {
+        await saveContentField(key, value);
+      }
+    } catch (error) {
+      setStatus({ type: "error", message: error?.message || messages.genericError });
+    }
   };
 
   const StatusBanner = () =>
@@ -792,18 +876,31 @@ export default function MembershipPage() {
         </div>
 
         <div className="mt-10 rounded-[2rem] border border-[#2d2416] bg-[#111111] p-8">
-          <div className="flex items-center gap-3">
-            <Users className="h-5 w-5 text-[#b6924f]" />
-            <EditableText
-              isAdmin={isAdmin}
-              value={tc("boardTitle")}
-              onSave={(v) => saveContentField("boardTitle", v)}
-              className="text-2xl text-[#f2e6cf]"
-              as="h2"
-              modifyLabel={tc("modify")}
-              saveLabel={tc("save")}
-              cancelLabel={tc("cancel")}
-            />
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <Users className="h-5 w-5 text-[#b6924f]" />
+              <EditableText
+                isAdmin={isAdmin}
+                value={tc("boardTitle")}
+                onSave={(v) => saveContentField("boardTitle", v)}
+                className="text-2xl text-[#f2e6cf]"
+                as="h2"
+                modifyLabel={tc("modify")}
+                saveLabel={tc("save")}
+                cancelLabel={tc("cancel")}
+              />
+            </div>
+
+            {isAdmin && (
+              <button
+                type="button"
+                onClick={handleAddBoardMember}
+                className="inline-flex items-center gap-2 rounded-full bg-[#b6924f] px-4 py-2 text-xs uppercase tracking-[0.18em] text-black transition hover:bg-[#c6a45d]"
+              >
+                <Plus className="h-4 w-4" />
+                {tc("addBoardMember")}
+              </button>
+            )}
           </div>
 
           <EditableText
@@ -819,14 +916,14 @@ export default function MembershipPage() {
           />
 
           <div className="mt-8 grid gap-6 md:grid-cols-3">
-            {[1, 2, 3].map((index) => (
+            {Array.from({ length: boardMemberCount }, (_, i) => i + 1).map((index) => (
               <div
                 key={index}
                 className="rounded-[1.5rem] border border-[#2d2416] bg-[#0f0f0f] p-6"
               >
                 <EditableText
                   isAdmin={isAdmin}
-                  value={tc(`boardMember${index}Name`)}
+                  value={getBoardValue(index, "name")}
                   onSave={(v) => saveContentField(`boardMember${index}Name`, v)}
                   className="text-lg text-[#f2e6cf]"
                   as="h3"
@@ -836,7 +933,7 @@ export default function MembershipPage() {
                 />
                 <EditableText
                   isAdmin={isAdmin}
-                  value={tc(`boardMember${index}Role`)}
+                  value={getBoardValue(index, "role")}
                   onSave={(v) => saveContentField(`boardMember${index}Role`, v)}
                   className="mt-2 text-xs uppercase tracking-[0.2em] text-[#b6924f]"
                   as="p"
@@ -846,7 +943,7 @@ export default function MembershipPage() {
                 />
                 <EditableText
                   isAdmin={isAdmin}
-                  value={tc(`boardMember${index}Text`)}
+                  value={getBoardValue(index, "text")}
                   onSave={(v) => saveContentField(`boardMember${index}Text`, v)}
                   className="mt-4 text-sm leading-7 text-[#a99c83]"
                   as="p"
@@ -855,6 +952,17 @@ export default function MembershipPage() {
                   saveLabel={tc("save")}
                   cancelLabel={tc("cancel")}
                 />
+
+                {isAdmin && boardMemberCount > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveBoardMember(index)}
+                    className="mt-5 inline-flex items-center gap-2 rounded-full border border-[#6a2f24] px-4 py-2 text-xs uppercase tracking-[0.18em] text-[#f2e6cf] transition hover:border-[#b74b39] hover:text-white"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                    {tc("removeBoardMember")}
+                  </button>
+                )}
               </div>
             ))}
           </div>
@@ -1135,9 +1243,7 @@ export default function MembershipPage() {
                   }}
                   className="w-full text-sm text-[#cdbd9f] underline underline-offset-4 hover:text-white"
                 >
-                  {authMode === "login"
-                    ? tc("switchToSignup")
-                    : tc("switchToLogin")}
+                  {authMode === "login" ? tc("switchToSignup") : tc("switchToLogin")}
                 </button>
 
                 <p className="text-center text-xs text-[#7f735c]">

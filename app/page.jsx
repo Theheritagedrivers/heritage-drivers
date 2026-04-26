@@ -20,19 +20,7 @@ import {
   Pencil,
   FileText,
 } from "lucide-react";
-import { createClient } from "@supabase/supabase-js";
-
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
-const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
-
-const supabaseConfigured =
-  SUPABASE_URL.startsWith("https://") &&
-  !SUPABASE_URL.includes("YOUR_PROJECT") &&
-  !SUPABASE_ANON_KEY.includes("YOUR_PUBLIC");
-
-const supabase = supabaseConfigured
-  ? createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
-  : null;
+import { supabase, supabaseConfigured } from "@/lib/supabaseClient";
 
 const emptyEventForm = {
   title: "",
@@ -91,8 +79,7 @@ const fallbackContent = {
     eventCardText:
       "Season Opening · 19.04.2026 · Private confirmation required.",
     notesTitle: "Members Notes",
-    notesText:
-      "Discreet updates, club notices and society correspondence.",
+    notesText: "Discreet updates, club notices and society correspondence.",
     atelierTitle: "Technical Circle",
     atelierText:
       "Selected workshop evenings, heritage discussions and mechanical exchange.",
@@ -260,8 +247,7 @@ const fallbackContent = {
     save: "Speichern",
     cancel: "Abbrechen",
     adminTitle: "Admin Panel",
-    adminSubtitle:
-      "Anfragen prüfen und registrierte Benutzer freigeben.",
+    adminSubtitle: "Anfragen prüfen und registrierte Benutzer freigeben.",
     adminEnquiries: "Mitgliedsanfragen",
     adminMembers: "Registrierte Mitglieder",
     adminNoEnquiries: "Keine Anfragen vorhanden.",
@@ -282,8 +268,7 @@ const fallbackContent = {
     footerAffiliationText:
       "The Heritage Drivers ist eine private Fahrergesellschaft.",
     footerSponsorsTitle: "Sponsoren",
-    footerSponsorsText:
-      "Ausgewählte Partner und unterstützende Häuser.",
+    footerSponsorsText: "Ausgewählte Partner und unterstützende Häuser.",
     footerBottomLine: "The Heritage Drivers",
     footerImprintLink: "Zum Impressum",
   },
@@ -477,25 +462,13 @@ function EditableText({
 }
 
 function EditablePlaceholderField({
-  isAdmin,
   value,
-  onSave,
   inputType = "input",
   fieldValue,
   onFieldChange,
-  modifyLabel,
-  saveLabel,
-  cancelLabel,
   className = "",
   extraProps = {},
 }) {
-  const [isEditingPlaceholder, setIsEditingPlaceholder] = useState(false);
-  const [draftPlaceholder, setDraftPlaceholder] = useState(value || "");
-
-  useEffect(() => {
-    if (!isEditingPlaceholder) setDraftPlaceholder(value || "");
-  }, [value, isEditingPlaceholder]);
-
   return (
     <div>
       {inputType === "textarea" ? (
@@ -515,8 +488,6 @@ function EditablePlaceholderField({
           {...extraProps}
         />
       )}
-
-
     </div>
   );
 }
@@ -615,6 +586,8 @@ export default function TheHeritageDriversLandingPage() {
     setEventForm(emptyEventForm);
     setEventImageFile(null);
     setEventAttachmentFile(null);
+    setAccountName("");
+    setAccountEmail("");
     setAccountPassword("");
     setAccountPasswordConfirm("");
     setEnquiries([]);
@@ -706,42 +679,38 @@ export default function TheHeritageDriversLandingPage() {
 
     setEventsLoading(true);
 
-    const baseActiveQuery = supabase
-      .from("events")
-      .select("*")
-      .eq("archived", false)
-      .order("event_date", { ascending: true });
-
-    const activeQuery =
-      currentProfile?.role === "admin"
-        ? baseActiveQuery
-        : baseActiveQuery.eq("is_active", true);
-
-    const { data: activeData, error: activeError } = await activeQuery;
-
-    if (!activeError && activeData) {
-      setEvents(activeData);
-    } else {
-      setEvents([]);
-    }
-
-    if (currentProfile?.role === "admin") {
-      const { data: archivedData, error: archivedError } = await supabase
+    try {
+      const baseActiveQuery = supabase
         .from("events")
         .select("*")
-        .eq("archived", true)
-        .order("event_date", { ascending: false });
+        .eq("archived", false)
+        .order("event_date", { ascending: true });
 
-      if (!archivedError && archivedData) {
-        setArchivedEvents(archivedData);
+      const activeQuery =
+        currentProfile?.role === "admin"
+          ? baseActiveQuery
+          : baseActiveQuery.eq("is_active", true);
+
+      const { data: activeData, error: activeError } = await activeQuery;
+
+      if (!activeError && activeData) setEvents(activeData);
+      else setEvents([]);
+
+      if (currentProfile?.role === "admin") {
+        const { data: archivedData, error: archivedError } = await supabase
+          .from("events")
+          .select("*")
+          .eq("archived", true)
+          .order("event_date", { ascending: false });
+
+        if (!archivedError && archivedData) setArchivedEvents(archivedData);
+        else setArchivedEvents([]);
       } else {
         setArchivedEvents([]);
       }
-    } else {
-      setArchivedEvents([]);
+    } finally {
+      setEventsLoading(false);
     }
-
-    setEventsLoading(false);
   };
 
   const loadParticipants = async () => {
@@ -813,10 +782,7 @@ export default function TheHeritageDriversLandingPage() {
       data.forEach((row) => {
         drafts[row.id] = row.role || "member";
       });
-      setMemberRoleDrafts((prev) => ({
-        ...drafts,
-        ...prev,
-      }));
+      setMemberRoleDrafts((prev) => ({ ...drafts, ...prev }));
     }
   };
 
@@ -828,11 +794,8 @@ export default function TheHeritageDriversLandingPage() {
       .select("id, email, created_at")
       .order("created_at", { ascending: false });
 
-    if (!error && data) {
-      setAuthUsersAdmin(data);
-    } else {
-      setAuthUsersAdmin([]);
-    }
+    if (!error && data) setAuthUsersAdmin(data);
+    else setAuthUsersAdmin([]);
   };
 
   const loadAppData = async (currentSession) => {
@@ -867,32 +830,28 @@ export default function TheHeritageDriversLandingPage() {
     let mounted = true;
 
     const init = async () => {
-      await loadWebsiteContent();
+      try {
+        await loadWebsiteContent();
 
-      const {
-        data: { session: currentSession },
-      } = await supabase.auth.getSession();
+        const {
+          data: { session: currentSession },
+        } = await supabase.auth.getSession();
 
-      const {
-        data: { user: currentUser },
-      } = await supabase.auth.getUser();
+        if (!mounted) return;
 
-      if (!mounted) return;
-
-      if (currentSession?.user && currentUser) {
-        const mergedSession = {
-          ...currentSession,
-          user: currentUser,
-        };
-
-        setSession(mergedSession);
-        setProfileLoaded(false);
-        await loadAppData(mergedSession);
-      } else {
+        if (currentSession?.user) {
+          setSession(currentSession);
+          setProfileLoaded(false);
+          await loadAppData(currentSession);
+        } else {
+          clearAppState();
+        }
+      } catch (error) {
+        console.error("Initialization error:", error);
         clearAppState();
+      } finally {
+        if (mounted) setInitializing(false);
       }
-
-      if (mounted) setInitializing(false);
     };
 
     init();
@@ -902,19 +861,16 @@ export default function TheHeritageDriversLandingPage() {
     } = supabase.auth.onAuthStateChange(async (_event, currentSession) => {
       if (!mounted) return;
 
-      if (currentSession?.user) {
-        const {
-          data: { user: currentUser },
-        } = await supabase.auth.getUser();
-
-        const mergedSession = currentUser
-          ? { ...currentSession, user: currentUser }
-          : currentSession;
-
-        setSession(mergedSession);
-        setProfileLoaded(false);
-        await loadAppData(mergedSession);
-      } else {
+      try {
+        if (currentSession?.user) {
+          setSession(currentSession);
+          setProfileLoaded(false);
+          await loadAppData(currentSession);
+        } else {
+          clearAppState();
+        }
+      } catch (error) {
+        console.error("Auth state change error:", error);
         clearAppState();
       }
     });
@@ -1072,9 +1028,7 @@ export default function TheHeritageDriversLandingPage() {
 
       if (
         profileError &&
-        !String(profileError.message || "")
-          .toLowerCase()
-          .includes("duplicate")
+        !String(profileError.message || "").toLowerCase().includes("duplicate")
       ) {
         setLoading(false);
         setStatus({
@@ -1096,22 +1050,19 @@ export default function TheHeritageDriversLandingPage() {
 
     if (!supabase) {
       clearAppState();
+      window.location.href = "/";
       return;
     }
 
-    const { error } = await supabase.auth.signOut();
+    await supabase.auth.signOut();
 
-    if (error) {
-      setStatus({
-        type: "error",
-        message: error.message || messages.genericError,
-      });
-      return;
-    }
+    localStorage.removeItem("heritage-drivers-auth");
+    sessionStorage.clear();
 
     clearAppState();
     setPassword("");
-    setStatus({ type: "success", message: messages.logoutSuccess });
+
+    window.location.href = "/";
   };
 
   const handleUpdateProfileName = async () => {
@@ -1258,10 +1209,7 @@ export default function TheHeritageDriversLandingPage() {
       setEditingEventId(null);
       await loadEvents(profile);
     } catch (err) {
-      setStatus({
-        type: "error",
-        message: err?.message || messages.uploadError,
-      });
+      setStatus({ type: "error", message: err?.message || messages.uploadError });
     }
 
     setEventSaving(false);
@@ -1408,10 +1356,7 @@ export default function TheHeritageDriversLandingPage() {
     }
 
     await loadParticipants();
-    setStatus({
-      type: "success",
-      message: messages.participantUpdateSuccess,
-    });
+    setStatus({ type: "success", message: messages.participantUpdateSuccess });
   };
 
   const handleViewParticipants = async (eventId) => {
@@ -1464,10 +1409,7 @@ export default function TheHeritageDriversLandingPage() {
 
     const { error } = await supabase
       .from("member_profiles")
-      .update({
-        approved: true,
-        role: selectedRole,
-      })
+      .update({ approved: true, role: selectedRole })
       .eq("id", memberId);
 
     if (error) {
@@ -1544,10 +1486,7 @@ export default function TheHeritageDriversLandingPage() {
       return;
     }
 
-    setStatus({
-      type: "success",
-      message: messages.enquiryReviewedSuccess,
-    });
+    setStatus({ type: "success", message: messages.enquiryReviewedSuccess });
     await loadEnquiries();
   };
 
@@ -1589,67 +1528,39 @@ export default function TheHeritageDriversLandingPage() {
       <header className="border-b border-[#2a2213]">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-5">
           <div className="flex items-center gap-4">
-            <img
-              src="/logo.png"
-              alt="The Heritage Drivers"
-              className="h-10 w-10 object-contain"
-            />
+            <img src="/logo.png" alt="The Heritage Drivers" className="h-10 w-10 object-contain" />
             <div>
-              <div className="text-xs uppercase tracking-[0.4em] text-[#b6924f]">
-                The Heritage Drivers
-              </div>
+              <div className="text-xs uppercase tracking-[0.4em] text-[#b6924f]">The Heritage Drivers</div>
               <div className="text-sm text-[#a89c84]">Motor Cars & Culture</div>
             </div>
           </div>
 
           <div className="flex items-center gap-4">
             <nav className="hidden items-center gap-8 text-sm md:flex">
-              <Link href="/society" className="transition hover:text-white">
-                {tc("navSociety")}
-              </Link>
-              <Link href="/philosophy" className="transition hover:text-white">
-                {tc("navPhilosophy")}
-              </Link>
-              <Link href="/membership" className="transition hover:text-white">
-                {tc("navMembership")}
-              </Link>
+              <Link href="/society" className="transition hover:text-white">{tc("navSociety")}</Link>
+              <Link href="/philosophy" className="transition hover:text-white">{tc("navPhilosophy")}</Link>
+              <Link href="/membership" className="transition hover:text-white">{tc("navMembership")}</Link>
 
               {isAdmin && (
-                <Link
-                  href="/admin/pages"
-                  className="inline-flex items-center gap-2 rounded-full border border-[#b6924f] px-4 py-2 text-xs uppercase tracking-[0.22em] text-[#e8dcc0] transition hover:bg-[#b6924f] hover:text-black"
-                >
+                <Link href="/admin/pages" className="inline-flex items-center gap-2 rounded-full border border-[#b6924f] px-4 py-2 text-xs uppercase tracking-[0.22em] text-[#e8dcc0] transition hover:bg-[#b6924f] hover:text-black">
                   <FileText className="h-3.5 w-3.5" />
                   {tc("navAdminPages")}
                 </Link>
               )}
 
               {!isLoggedIn ? (
-                <button
-                  onClick={() => {
-                    resetStatus();
-                    setAuthMode("login");
-                    setShowLogin(true);
-                  }}
-                  className="inline-flex rounded-full border border-[#3b311d] px-4 py-2 text-xs uppercase tracking-[0.22em] text-[#e8dcc0] transition hover:border-[#b6924f] hover:text-white"
-                >
+                <button onClick={() => { resetStatus(); setAuthMode("login"); setShowLogin(true); }} className="inline-flex rounded-full border border-[#3b311d] px-4 py-2 text-xs uppercase tracking-[0.22em] text-[#e8dcc0] transition hover:border-[#b6924f] hover:text-white">
                   {tc("loginButton")}
                 </button>
               ) : (
-                <button
-                  onClick={handleLogout}
-                  className="inline-flex items-center gap-2 rounded-full border border-[#3b311d] px-4 py-2 text-xs uppercase tracking-[0.22em] text-[#e8dcc0] transition hover:border-[#b6924f] hover:text-white"
-                >
+                <button onClick={handleLogout} className="inline-flex items-center gap-2 rounded-full border border-[#3b311d] px-4 py-2 text-xs uppercase tracking-[0.22em] text-[#e8dcc0] transition hover:border-[#b6924f] hover:text-white">
                   <LogOut className="h-3.5 w-3.5" />
                   {lang === "en" ? "Sign Out" : "Abmelden"}
                 </button>
               )}
             </nav>
 
-            <button
-              onClick={() => setLang(lang === "en" ? "de" : "en")}
-              className="border border-[#b6924f] px-3 py-1 text-xs uppercase tracking-widest"
-            >
+            <button onClick={() => setLang(lang === "en" ? "de" : "en")} className="border border-[#b6924f] px-3 py-1 text-xs uppercase tracking-widest">
               {lang === "en" ? "DE" : "EN"}
             </button>
           </div>
@@ -1661,199 +1572,52 @@ export default function TheHeritageDriversLandingPage() {
 
         {!supabaseConfigured && (
           <div className="mb-10 rounded-[1.75rem] border border-[#4b2f20] bg-[#16100d] p-6">
-            <p className="text-xs uppercase tracking-[0.35em] text-[#b6924f]">
-              {messages.setupTitle}
-            </p>
-            <p className="mt-3 max-w-3xl text-sm leading-7 text-[#cfbea3]">
-              {messages.setupText}
-            </p>
+            <p className="text-xs uppercase tracking-[0.35em] text-[#b6924f]">{messages.setupTitle}</p>
+            <p className="mt-3 max-w-3xl text-sm leading-7 text-[#cfbea3]">{messages.setupText}</p>
           </div>
         )}
 
         <section>
           <div className="mb-10 flex justify-center">
-            <img
-              src="/logo.png"
-              alt="The Heritage Drivers"
-              className="h-40 object-contain"
-            />
+            <img src="/logo.png" alt="The Heritage Drivers" className="h-40 object-contain" />
           </div>
 
           {!isLoggedIn ? (
             <>
-              <EditableText
-                isAdmin={isAdmin}
-                value={tc("heroTag")}
-                onSave={(v) => saveContentField("heroTag", v)}
-                className="text-sm uppercase tracking-[0.4em] text-[#b6924f]"
-                as="p"
-                modifyLabel={tc("modify")}
-                saveLabel={tc("save")}
-                cancelLabel={tc("cancel")}
-              />
-
-              <EditableText
-                isAdmin={isAdmin}
-                value={tc("heroTitle")}
-                onSave={(v) => saveContentField("heroTitle", v)}
-                className="mt-6 text-5xl leading-tight text-[#f2e6cf]"
-                as="h1"
-                multiline
-                modifyLabel={tc("modify")}
-                saveLabel={tc("save")}
-                cancelLabel={tc("cancel")}
-              />
-
-              <EditableText
-                isAdmin={isAdmin}
-                value={tc("heroText")}
-                onSave={(v) => saveContentField("heroText", v)}
-                className="mt-6 max-w-xl text-lg text-[#bcb09a]"
-                as="p"
-                modifyLabel={tc("modify")}
-                saveLabel={tc("save")}
-                cancelLabel={tc("cancel")}
-              />
+              <EditableText isAdmin={isAdmin} value={tc("heroTag")} onSave={(v) => saveContentField("heroTag", v)} className="text-sm uppercase tracking-[0.4em] text-[#b6924f]" as="p" modifyLabel={tc("modify")} saveLabel={tc("save")} cancelLabel={tc("cancel")} />
+              <EditableText isAdmin={isAdmin} value={tc("heroTitle")} onSave={(v) => saveContentField("heroTitle", v)} className="mt-6 text-5xl leading-tight text-[#f2e6cf]" as="h1" multiline modifyLabel={tc("modify")} saveLabel={tc("save")} cancelLabel={tc("cancel")} />
+              <EditableText isAdmin={isAdmin} value={tc("heroText")} onSave={(v) => saveContentField("heroText", v)} className="mt-6 max-w-xl text-lg text-[#bcb09a]" as="p" modifyLabel={tc("modify")} saveLabel={tc("save")} cancelLabel={tc("cancel")} />
 
               <div className="mt-10 flex flex-wrap gap-4">
-                <Link
-                  href="/membership"
-                  className="bg-[#b6924f] px-6 py-3 text-black"
-                >
-                  {tc("cta1")}
-                </Link>
-                <Link
-                  href="/society"
-                  className="border border-[#b6924f] px-6 py-3"
-                >
-                  {tc("cta2")}
-                </Link>
-                <button
-                  onClick={() => {
-                    resetStatus();
-                    setAuthMode("login");
-                    setShowLogin(true);
-                  }}
-                  className="border border-[#3b311d] px-6 py-3 text-[#e8dcc0]"
-                >
-                  {tc("loginButton")}
-                </button>
+                <Link href="/membership" className="bg-[#b6924f] px-6 py-3 text-black">{tc("cta1")}</Link>
+                <Link href="/society" className="border border-[#b6924f] px-6 py-3">{tc("cta2")}</Link>
+                <button onClick={() => { resetStatus(); setAuthMode("login"); setShowLogin(true); }} className="border border-[#3b311d] px-6 py-3 text-[#e8dcc0]">{tc("loginButton")}</button>
               </div>
 
               <div className="mt-10 flex flex-wrap gap-6 text-sm uppercase text-[#8b7e65]">
-                {[tc("tag1"), tc("tag2"), tc("tag3"), tc("tag4")].map((tag) => (
-                  <span key={tag}>{tag}</span>
-                ))}
+                {[tc("tag1"), tc("tag2"), tc("tag3"), tc("tag4")].map((tag) => <span key={tag}>{tag}</span>)}
               </div>
             </>
           ) : (
             <>
-              <EditableText
-                isAdmin={isAdmin}
-                value={tc("secureAccess")}
-                onSave={(v) => saveContentField("secureAccess", v)}
-                className="text-sm uppercase tracking-[0.4em] text-[#b6924f]"
-                as="p"
-                modifyLabel={tc("modify")}
-                saveLabel={tc("save")}
-                cancelLabel={tc("cancel")}
-              />
-
-              <h1 className="mt-6 text-5xl leading-tight text-[#f2e6cf]">
-                {tc("welcome")}, {memberName}
-              </h1>
-
-              <EditableText
-                isAdmin={isAdmin}
-                value={tc("membersIntro")}
-                onSave={(v) => saveContentField("membersIntro", v)}
-                className="mt-6 max-w-2xl text-lg text-[#bcb09a]"
-                as="p"
-                modifyLabel={tc("modify")}
-                saveLabel={tc("save")}
-                cancelLabel={tc("cancel")}
-              />
+              <EditableText isAdmin={isAdmin} value={tc("secureAccess")} onSave={(v) => saveContentField("secureAccess", v)} className="text-sm uppercase tracking-[0.4em] text-[#b6924f]" as="p" modifyLabel={tc("modify")} saveLabel={tc("save")} cancelLabel={tc("cancel")} />
+              <h1 className="mt-6 text-5xl leading-tight text-[#f2e6cf]">{tc("welcome")}, {memberName}</h1>
+              <EditableText isAdmin={isAdmin} value={tc("membersIntro")} onSave={(v) => saveContentField("membersIntro", v)} className="mt-6 max-w-2xl text-lg text-[#bcb09a]" as="p" modifyLabel={tc("modify")} saveLabel={tc("save")} cancelLabel={tc("cancel")} />
 
               <div className="mt-10 grid gap-6 lg:grid-cols-3">
                 <div className="rounded-[1.5rem] border border-[#2d2416] bg-[#131313] p-6">
-                  <div className="flex items-center gap-3">
-                    <Calendar className="h-5 w-5 text-[#b6924f]" />
-                    <EditableText
-                      isAdmin={isAdmin}
-                      value={tc("eventCardTitle")}
-                      onSave={(v) => saveContentField("eventCardTitle", v)}
-                      className="text-lg text-[#f2e6cf]"
-                      as="h3"
-                      modifyLabel={tc("modify")}
-                      saveLabel={tc("save")}
-                      cancelLabel={tc("cancel")}
-                    />
-                  </div>
-                  <EditableText
-                    isAdmin={isAdmin}
-                    value={tc("eventCardText")}
-                    onSave={(v) => saveContentField("eventCardText", v)}
-                    className="mt-3 text-sm leading-6 text-[#a99c83]"
-                    as="p"
-                    multiline
-                    modifyLabel={tc("modify")}
-                    saveLabel={tc("save")}
-                    cancelLabel={tc("cancel")}
-                  />
+                  <div className="flex items-center gap-3"><Calendar className="h-5 w-5 text-[#b6924f]" /><EditableText isAdmin={isAdmin} value={tc("eventCardTitle")} onSave={(v) => saveContentField("eventCardTitle", v)} className="text-lg text-[#f2e6cf]" as="h3" modifyLabel={tc("modify")} saveLabel={tc("save")} cancelLabel={tc("cancel")} /></div>
+                  <EditableText isAdmin={isAdmin} value={tc("eventCardText")} onSave={(v) => saveContentField("eventCardText", v)} className="mt-3 text-sm leading-6 text-[#a99c83]" as="p" multiline modifyLabel={tc("modify")} saveLabel={tc("save")} cancelLabel={tc("cancel")} />
                 </div>
 
                 <div className="rounded-[1.5rem] border border-[#2d2416] bg-[#131313] p-6">
-                  <div className="flex items-center gap-3">
-                    <Mail className="h-5 w-5 text-[#b6924f]" />
-                    <EditableText
-                      isAdmin={isAdmin}
-                      value={tc("notesTitle")}
-                      onSave={(v) => saveContentField("notesTitle", v)}
-                      className="text-lg text-[#f2e6cf]"
-                      as="h3"
-                      modifyLabel={tc("modify")}
-                      saveLabel={tc("save")}
-                      cancelLabel={tc("cancel")}
-                    />
-                  </div>
-                  <EditableText
-                    isAdmin={isAdmin}
-                    value={tc("notesText")}
-                    onSave={(v) => saveContentField("notesText", v)}
-                    className="mt-3 text-sm leading-6 text-[#a99c83]"
-                    as="p"
-                    multiline
-                    modifyLabel={tc("modify")}
-                    saveLabel={tc("save")}
-                    cancelLabel={tc("cancel")}
-                  />
+                  <div className="flex items-center gap-3"><Mail className="h-5 w-5 text-[#b6924f]" /><EditableText isAdmin={isAdmin} value={tc("notesTitle")} onSave={(v) => saveContentField("notesTitle", v)} className="text-lg text-[#f2e6cf]" as="h3" modifyLabel={tc("modify")} saveLabel={tc("save")} cancelLabel={tc("cancel")} /></div>
+                  <EditableText isAdmin={isAdmin} value={tc("notesText")} onSave={(v) => saveContentField("notesText", v)} className="mt-3 text-sm leading-6 text-[#a99c83]" as="p" multiline modifyLabel={tc("modify")} saveLabel={tc("save")} cancelLabel={tc("cancel")} />
                 </div>
 
                 <div className="rounded-[1.5rem] border border-[#2d2416] bg-[#131313] p-6">
-                  <div className="flex items-center gap-3">
-                    <Wrench className="h-5 w-5 text-[#b6924f]" />
-                    <EditableText
-                      isAdmin={isAdmin}
-                      value={tc("atelierTitle")}
-                      onSave={(v) => saveContentField("atelierTitle", v)}
-                      className="text-lg text-[#f2e6cf]"
-                      as="h3"
-                      modifyLabel={tc("modify")}
-                      saveLabel={tc("save")}
-                      cancelLabel={tc("cancel")}
-                    />
-                  </div>
-                  <EditableText
-                    isAdmin={isAdmin}
-                    value={tc("atelierText")}
-                    onSave={(v) => saveContentField("atelierText", v)}
-                    className="mt-3 text-sm leading-6 text-[#a99c83]"
-                    as="p"
-                    multiline
-                    modifyLabel={tc("modify")}
-                    saveLabel={tc("save")}
-                    cancelLabel={tc("cancel")}
-                  />
+                  <div className="flex items-center gap-3"><Wrench className="h-5 w-5 text-[#b6924f]" /><EditableText isAdmin={isAdmin} value={tc("atelierTitle")} onSave={(v) => saveContentField("atelierTitle", v)} className="text-lg text-[#f2e6cf]" as="h3" modifyLabel={tc("modify")} saveLabel={tc("save")} cancelLabel={tc("cancel")} /></div>
+                  <EditableText isAdmin={isAdmin} value={tc("atelierText")} onSave={(v) => saveContentField("atelierText", v)} className="mt-3 text-sm leading-6 text-[#a99c83]" as="p" multiline modifyLabel={tc("modify")} saveLabel={tc("save")} cancelLabel={tc("cancel")} />
                 </div>
               </div>
             </>
@@ -1863,41 +1627,19 @@ export default function TheHeritageDriversLandingPage() {
         {!isLoggedIn && (
           <section className="mt-24 grid gap-6 lg:grid-cols-2">
             <div>
-              <EditableText
-                isAdmin={isAdmin}
-                value={tc("philosophyTitle")}
-                onSave={(v) => saveContentField("philosophyTitle", v)}
-                className="text-3xl text-[#f0e3c6]"
-                as="h2"
-                modifyLabel={tc("modify")}
-                saveLabel={tc("save")}
-                cancelLabel={tc("cancel")}
-              />
+              <EditableText isAdmin={isAdmin} value={tc("philosophyTitle")} onSave={(v) => saveContentField("philosophyTitle", v)} className="text-3xl text-[#f0e3c6]" as="h2" modifyLabel={tc("modify")} saveLabel={tc("save")} cancelLabel={tc("cancel")} />
             </div>
 
             <div className="rounded-[2rem] border border-[#2d2416] bg-[#111111] p-8">
               <div className="flex items-center gap-3">
-                <div className="rounded-full border border-[#3a2f1c] p-3">
-                  <User className="h-5 w-5 text-[#b6924f]" />
-                </div>
+                <div className="rounded-full border border-[#3a2f1c] p-3"><User className="h-5 w-5 text-[#b6924f]" /></div>
                 <div>
-                  <p className="text-xs uppercase tracking-[0.35em] text-[#b6924f]">
-                    {lang === "en" ? "Members" : "Mitglieder"}
-                  </p>
-                  <p className="mt-2 text-sm text-[#b9ad95]">
-                    {tc("loginSubtitle")}
-                  </p>
+                  <p className="text-xs uppercase tracking-[0.35em] text-[#b6924f]">{lang === "en" ? "Members" : "Mitglieder"}</p>
+                  <p className="mt-2 text-sm text-[#b9ad95]">{tc("loginSubtitle")}</p>
                 </div>
               </div>
 
-              <button
-                onClick={() => {
-                  resetStatus();
-                  setAuthMode("login");
-                  setShowLogin(true);
-                }}
-                className="mt-6 rounded-full border border-[#b6924f] px-5 py-3 text-sm uppercase tracking-[0.24em] text-[#f0e3c6] transition hover:bg-[#b6924f] hover:text-black"
-              >
+              <button onClick={() => { resetStatus(); setAuthMode("login"); setShowLogin(true); }} className="mt-6 rounded-full border border-[#b6924f] px-5 py-3 text-sm uppercase tracking-[0.24em] text-[#f0e3c6] transition hover:bg-[#b6924f] hover:text-black">
                 {tc("loginButton")}
               </button>
             </div>
@@ -1906,80 +1648,15 @@ export default function TheHeritageDriversLandingPage() {
 
         {!isLoggedIn && (
           <section className="mt-24">
-            <EditableText
-              isAdmin={isAdmin}
-              value={tc("membershipTitle")}
-              onSave={(v) => saveContentField("membershipTitle", v)}
-              className="text-3xl text-[#f0e3c6]"
-              as="h2"
-              modifyLabel={tc("modify")}
-              saveLabel={tc("save")}
-              cancelLabel={tc("cancel")}
-            />
-            <EditableText
-              isAdmin={isAdmin}
-              value={tc("membershipText")}
-              onSave={(v) => saveContentField("membershipText", v)}
-              className="mt-6 max-w-xl text-[#bcb09a]"
-              as="p"
-              modifyLabel={tc("modify")}
-              saveLabel={tc("save")}
-              cancelLabel={tc("cancel")}
-            />
+            <EditableText isAdmin={isAdmin} value={tc("membershipTitle")} onSave={(v) => saveContentField("membershipTitle", v)} className="text-3xl text-[#f0e3c6]" as="h2" modifyLabel={tc("modify")} saveLabel={tc("save")} cancelLabel={tc("cancel")} />
+            <EditableText isAdmin={isAdmin} value={tc("membershipText")} onSave={(v) => saveContentField("membershipText", v)} className="mt-6 max-w-xl text-[#bcb09a]" as="p" modifyLabel={tc("modify")} saveLabel={tc("save")} cancelLabel={tc("cancel")} />
 
             <div className="mt-10 max-w-md space-y-4">
-              <EditablePlaceholderField
-                isAdmin={isAdmin}
-                value={tc("enquiryName")}
-                onSave={(v) => saveContentField("enquiryName", v)}
-                fieldValue={enquiryForm.full_name}
-                onFieldChange={(e) =>
-                  setEnquiryForm({ ...enquiryForm, full_name: e.target.value })
-                }
-                className="w-full border border-[#342a1a] bg-black p-3 text-[#efe2c5]"
-                modifyLabel={tc("modify")}
-                saveLabel={tc("save")}
-                cancelLabel={tc("cancel")}
-              />
+              <EditablePlaceholderField value={tc("enquiryName")} fieldValue={enquiryForm.full_name} onFieldChange={(e) => setEnquiryForm({ ...enquiryForm, full_name: e.target.value })} className="w-full border border-[#342a1a] bg-black p-3 text-[#efe2c5]" />
+              <EditablePlaceholderField value={tc("enquiryEmail")} fieldValue={enquiryForm.email} onFieldChange={(e) => setEnquiryForm({ ...enquiryForm, email: e.target.value })} className="w-full border border-[#342a1a] bg-black p-3 text-[#efe2c5]" extraProps={{ type: "email" }} />
+              <EditablePlaceholderField value={tc("enquiryMessage")} inputType="textarea" fieldValue={enquiryForm.interest_note} onFieldChange={(e) => setEnquiryForm({ ...enquiryForm, interest_note: e.target.value })} className="w-full border border-[#342a1a] bg-black p-3 text-[#efe2c5]" />
 
-              <EditablePlaceholderField
-                isAdmin={isAdmin}
-                value={tc("enquiryEmail")}
-                onSave={(v) => saveContentField("enquiryEmail", v)}
-                fieldValue={enquiryForm.email}
-                onFieldChange={(e) =>
-                  setEnquiryForm({ ...enquiryForm, email: e.target.value })
-                }
-                className="w-full border border-[#342a1a] bg-black p-3 text-[#efe2c5]"
-                modifyLabel={tc("modify")}
-                saveLabel={tc("save")}
-                cancelLabel={tc("cancel")}
-                extraProps={{ type: "email" }}
-              />
-
-              <EditablePlaceholderField
-                isAdmin={isAdmin}
-                value={tc("enquiryMessage")}
-                onSave={(v) => saveContentField("enquiryMessage", v)}
-                inputType="textarea"
-                fieldValue={enquiryForm.interest_note}
-                onFieldChange={(e) =>
-                  setEnquiryForm({
-                    ...enquiryForm,
-                    interest_note: e.target.value,
-                  })
-                }
-                className="w-full border border-[#342a1a] bg-black p-3 text-[#efe2c5]"
-                modifyLabel={tc("modify")}
-                saveLabel={tc("save")}
-                cancelLabel={tc("cancel")}
-              />
-
-              <button
-                onClick={handleSubmitEnquiry}
-                disabled={enquiryLoading}
-                className="flex w-full items-center justify-center gap-2 bg-[#b6924f] px-6 py-3 text-black disabled:cursor-not-allowed disabled:opacity-70"
-              >
+              <button onClick={handleSubmitEnquiry} disabled={enquiryLoading} className="flex w-full items-center justify-center gap-2 bg-[#b6924f] px-6 py-3 text-black disabled:cursor-not-allowed disabled:opacity-70">
                 {enquiryLoading && <Loader2 className="h-4 w-4 animate-spin" />}
                 {tc("enquirySubmit")}
               </button>
@@ -1990,26 +1667,8 @@ export default function TheHeritageDriversLandingPage() {
         {isLoggedIn && profileLoaded && profile && !hasMemberAccess && (
           <section className="mt-24">
             <div className="rounded-[2rem] border border-[#4b2f20] bg-[#16100d] p-8">
-              <EditableText
-                isAdmin={isAdmin}
-                value={tc("approvalPendingTitle")}
-                onSave={(v) => saveContentField("approvalPendingTitle", v)}
-                className="text-2xl text-[#f2e6cf]"
-                as="h2"
-                modifyLabel={tc("modify")}
-                saveLabel={tc("save")}
-                cancelLabel={tc("cancel")}
-              />
-              <EditableText
-                isAdmin={isAdmin}
-                value={tc("approvalPendingText")}
-                onSave={(v) => saveContentField("approvalPendingText", v)}
-                className="mt-4 max-w-2xl text-[#cfbea3]"
-                as="p"
-                modifyLabel={tc("modify")}
-                saveLabel={tc("save")}
-                cancelLabel={tc("cancel")}
-              />
+              <EditableText isAdmin={isAdmin} value={tc("approvalPendingTitle")} onSave={(v) => saveContentField("approvalPendingTitle", v)} className="text-2xl text-[#f2e6cf]" as="h2" modifyLabel={tc("modify")} saveLabel={tc("save")} cancelLabel={tc("cancel")} />
+              <EditableText isAdmin={isAdmin} value={tc("approvalPendingText")} onSave={(v) => saveContentField("approvalPendingText", v)} className="mt-4 max-w-2xl text-[#cfbea3]" as="p" modifyLabel={tc("modify")} saveLabel={tc("save")} cancelLabel={tc("cancel")} />
             </div>
           </section>
         )}
@@ -2019,32 +1678,20 @@ export default function TheHeritageDriversLandingPage() {
             <div className="rounded-[2rem] border border-[#2c2415] bg-[#0f0f0f] p-8 shadow-2xl shadow-black/30">
               <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
                 <div>
-                  <p className="text-xs uppercase tracking-[0.35em] text-[#b6924f]">
-                    Club Events
-                  </p>
-                  <h2 className="mt-4 text-3xl text-[#f2e6cf]">
-                    {tc("eventsSectionTitle")}
-                  </h2>
-                  <p className="mt-4 max-w-2xl text-[#b8ad96]">
-                    {tc("eventsSectionText")}
-                  </p>
+                  <p className="text-xs uppercase tracking-[0.35em] text-[#b6924f]">Club Events</p>
+                  <h2 className="mt-4 text-3xl text-[#f2e6cf]">{tc("eventsSectionTitle")}</h2>
+                  <p className="mt-4 max-w-2xl text-[#b8ad96]">{tc("eventsSectionText")}</p>
                 </div>
 
                 <div className="flex flex-wrap gap-3">
                   {isAdmin && (
-                    <Link
-                      href="/admin/pages"
-                      className="inline-flex items-center gap-2 rounded-full border border-[#b6924f] px-5 py-3 text-sm uppercase tracking-[0.22em] text-[#f2e6cf] transition hover:bg-[#b6924f] hover:text-black"
-                    >
+                    <Link href="/admin/pages" className="inline-flex items-center gap-2 rounded-full border border-[#b6924f] px-5 py-3 text-sm uppercase tracking-[0.22em] text-[#f2e6cf] transition hover:bg-[#b6924f] hover:text-black">
                       <FileText className="h-4 w-4" />
                       {tc("navAdminPages")}
                     </Link>
                   )}
 
-                  <button
-                    onClick={handleLogout}
-                    className="rounded-full border border-[#3b311d] px-5 py-3 text-sm uppercase tracking-[0.22em] text-[#f2e6cf] transition hover:border-[#b6924f]"
-                  >
+                  <button onClick={handleLogout} className="rounded-full border border-[#3b311d] px-5 py-3 text-sm uppercase tracking-[0.22em] text-[#f2e6cf] transition hover:border-[#b6924f]">
                     {lang === "en" ? "Sign Out" : "Abmelden"}
                   </button>
                 </div>
@@ -2059,63 +1706,26 @@ export default function TheHeritageDriversLandingPage() {
                   ) : (
                     <div className="grid gap-6 lg:grid-cols-2">
                       {events.map((event) => (
-                        <div
-                          key={event.id}
-                          className="rounded-[1.5rem] border border-[#2d2416] bg-[#0f0f0f] p-6"
-                        >
-                          {event.image_url && (
-                            <img
-                              src={event.image_url}
-                              alt={event.title}
-                              className="mb-4 h-48 w-full rounded-2xl object-cover"
-                            />
-                          )}
+                        <div key={event.id} className="rounded-[1.5rem] border border-[#2d2416] bg-[#0f0f0f] p-6">
+                          {event.image_url && <img src={event.image_url} alt={event.title} className="mb-4 h-48 w-full rounded-2xl object-cover" />}
 
-                          <p className="text-xs uppercase tracking-[0.3em] text-[#b6924f]">
-                            {tc("eventUpcoming")}
-                          </p>
-                          <h4 className="mt-3 text-xl text-[#f2e6cf]">
-                            {event.title}
-                          </h4>
-                          <p className="mt-2 text-sm text-[#a99c83]">
-                            {formatDateSafe(event.event_date, lang)}
-                            {event.location ? ` · ${event.location}` : ""}
-                          </p>
+                          <p className="text-xs uppercase tracking-[0.3em] text-[#b6924f]">{tc("eventUpcoming")}</p>
+                          <h4 className="mt-3 text-xl text-[#f2e6cf]">{event.title}</h4>
+                          <p className="mt-2 text-sm text-[#a99c83]">{formatDateSafe(event.event_date, lang)}{event.location ? ` · ${event.location}` : ""}</p>
 
-                          {event.short_description && (
-                            <p className="mt-4 text-sm leading-6 text-[#a99c83]">
-                              {event.short_description}
-                            </p>
-                          )}
-
-                          {event.long_description && (
-                            <p className="mt-4 text-sm leading-6 text-[#8f836d]">
-                              {event.long_description}
-                            </p>
-                          )}
+                          {event.short_description && <p className="mt-4 text-sm leading-6 text-[#a99c83]">{event.short_description}</p>}
+                          {event.long_description && <p className="mt-4 text-sm leading-6 text-[#8f836d]">{event.long_description}</p>}
 
                           {event.max_participants && (
-                            <p className="mt-4 text-sm text-[#b8ad96]">
-                              {tc("eventMaxParticipantsLabel")}:{" "}
-                              {getParticipantsForEvent(event.id).length}
-                              {" / "}
-                              {event.max_participants}
-                            </p>
+                            <p className="mt-4 text-sm text-[#b8ad96]">{tc("eventMaxParticipantsLabel")}: {getParticipantsForEvent(event.id).length} / {event.max_participants}</p>
                           )}
 
                           {getParticipantsForEvent(event.id).length > 0 && (
                             <div className="mt-4">
-                              <p className="text-sm text-[#d9ccb1]">
-                                {tc("eventParticipants")}:
-                              </p>
+                              <p className="text-sm text-[#d9ccb1]">{tc("eventParticipants")}:</p>
                               <div className="mt-2 flex flex-wrap gap-2">
                                 {getParticipantsForEvent(event.id).map((participant) => (
-                                  <span
-                                    key={participant.id}
-                                    className="rounded-full border border-[#3b311d] px-3 py-1 text-xs text-[#cdbd9f]"
-                                  >
-                                    {participant.full_name || participant.user_id}
-                                  </span>
+                                  <span key={participant.id} className="rounded-full border border-[#3b311d] px-3 py-1 text-xs text-[#cdbd9f]">{participant.full_name || participant.user_id}</span>
                                 ))}
                               </div>
                             </div>
@@ -2123,12 +1733,7 @@ export default function TheHeritageDriversLandingPage() {
 
                           {event.attachment_url && (
                             <div className="mt-4">
-                              <a
-                                href={event.attachment_url}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="inline-flex items-center gap-2 text-sm text-[#d7bf8a] underline underline-offset-4 hover:text-white"
-                              >
+                              <a href={event.attachment_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 text-sm text-[#d7bf8a] underline underline-offset-4 hover:text-white">
                                 <Paperclip className="h-4 w-4" />
                                 {event.attachment_name || tc("eventOpenAttachment")}
                               </a>
@@ -2136,57 +1741,16 @@ export default function TheHeritageDriversLandingPage() {
                           )}
 
                           <div className="mt-6 flex items-center gap-3">
-                            <input
-                              id={`join-${event.id}`}
-                              type="checkbox"
-                              checked={isRegisteredForEvent(event.id)}
-                              onChange={(e) =>
-                                handleToggleParticipation(
-                                  event.id,
-                                  e.target.checked
-                                )
-                              }
-                              className="h-4 w-4 accent-[#b6924f]"
-                            />
-                            <label
-                              htmlFor={`join-${event.id}`}
-                              className="text-sm text-[#e8dcc0]"
-                            >
-                              {tc("eventAttend")}
-                            </label>
+                            <input id={`join-${event.id}`} type="checkbox" checked={isRegisteredForEvent(event.id)} onChange={(e) => handleToggleParticipation(event.id, e.target.checked)} className="h-4 w-4 accent-[#b6924f]" />
+                            <label htmlFor={`join-${event.id}`} className="text-sm text-[#e8dcc0]">{tc("eventAttend")}</label>
                           </div>
 
                           {isAdmin && (
                             <div className="mt-6 flex flex-wrap gap-3">
-                              <button
-                                onClick={() => handleEditEvent(event)}
-                                className="rounded-full border border-[#b6924f] px-4 py-2 text-xs uppercase tracking-[0.18em] text-[#f2e6cf] transition hover:bg-[#b6924f] hover:text-black"
-                              >
-                                {tc("eventModify")}
-                              </button>
-
-                              <button
-                                onClick={() => handleViewParticipants(event.id)}
-                                className="rounded-full border border-[#3b311d] px-4 py-2 text-xs uppercase tracking-[0.18em] text-[#f2e6cf] transition hover:border-[#b6924f]"
-                              >
-                                {tc("eventParticipants")}
-                              </button>
-
-                              <button
-                                onClick={() => handleArchiveEvent(event.id)}
-                                className="inline-flex items-center gap-2 rounded-full border border-[#6e5a2c] px-4 py-2 text-xs uppercase tracking-[0.18em] text-[#f2e6cf] transition hover:border-[#b6924f] hover:text-white"
-                              >
-                                <Archive className="h-3.5 w-3.5" />
-                                {tc("eventArchive")}
-                              </button>
-
-                              <button
-                                onClick={() => handleDeleteEvent(event.id)}
-                                className="inline-flex items-center gap-2 rounded-full border border-[#6a2f24] px-4 py-2 text-xs uppercase tracking-[0.18em] text-[#f2e6cf] transition hover:border-[#b74b39] hover:text-white"
-                              >
-                                <Trash2 className="h-3.5 w-3.5" />
-                                {tc("eventDelete")}
-                              </button>
+                              <button onClick={() => handleEditEvent(event)} className="rounded-full border border-[#b6924f] px-4 py-2 text-xs uppercase tracking-[0.18em] text-[#f2e6cf] transition hover:bg-[#b6924f] hover:text-black">{tc("eventModify")}</button>
+                              <button onClick={() => handleViewParticipants(event.id)} className="rounded-full border border-[#3b311d] px-4 py-2 text-xs uppercase tracking-[0.18em] text-[#f2e6cf] transition hover:border-[#b6924f]">{tc("eventParticipants")}</button>
+                              <button onClick={() => handleArchiveEvent(event.id)} className="inline-flex items-center gap-2 rounded-full border border-[#6e5a2c] px-4 py-2 text-xs uppercase tracking-[0.18em] text-[#f2e6cf] transition hover:border-[#b6924f] hover:text-white"><Archive className="h-3.5 w-3.5" />{tc("eventArchive")}</button>
+                              <button onClick={() => handleDeleteEvent(event.id)} className="inline-flex items-center gap-2 rounded-full border border-[#6a2f24] px-4 py-2 text-xs uppercase tracking-[0.18em] text-[#f2e6cf] transition hover:border-[#b74b39] hover:text-white"><Trash2 className="h-3.5 w-3.5" />{tc("eventDelete")}</button>
                             </div>
                           )}
                         </div>
@@ -2196,140 +1760,41 @@ export default function TheHeritageDriversLandingPage() {
 
                   {isAdmin && (
                     <div className="mt-8 flex flex-wrap gap-4">
-                      <button
-                        onClick={resetEventEditor}
-                        className="rounded-full bg-[#b6924f] px-5 py-3 text-sm uppercase tracking-[0.22em] text-black transition hover:bg-[#c6a45d]"
-                      >
-                        {tc("eventCreate")}
-                      </button>
+                      <button onClick={resetEventEditor} className="rounded-full bg-[#b6924f] px-5 py-3 text-sm uppercase tracking-[0.22em] text-black transition hover:bg-[#c6a45d]">{tc("eventCreate")}</button>
                     </div>
                   )}
 
                   {isAdmin && (
                     <div className="mt-8 rounded-[1.5rem] border border-[#2d2416] bg-[#0f0f0f] p-6">
-                      <p className="text-xs uppercase tracking-[0.3em] text-[#b6924f]">
-                        {editingEventId ? tc("eventModify") : tc("eventCreate")}
-                      </p>
+                      <p className="text-xs uppercase tracking-[0.3em] text-[#b6924f]">{editingEventId ? tc("eventModify") : tc("eventCreate")}</p>
 
                       <div className="mt-6 grid gap-4 lg:grid-cols-2">
-                        <input
-                          value={eventForm.title}
-                          onChange={(e) =>
-                            setEventForm({ ...eventForm, title: e.target.value })
-                          }
-                          placeholder={tc("eventTitleLabel")}
-                          className="w-full rounded-2xl border border-[#342a1a] bg-black/60 p-4 text-[#efe2c5] outline-none placeholder:text-[#796c56]"
-                        />
-                        <input
-                          value={eventForm.event_date}
-                          onChange={(e) =>
-                            setEventForm({
-                              ...eventForm,
-                              event_date: e.target.value,
-                            })
-                          }
-                          type="date"
-                          className="w-full rounded-2xl border border-[#342a1a] bg-black/60 p-4 text-[#efe2c5] outline-none"
-                        />
-                        <input
-                          value={eventForm.location}
-                          onChange={(e) =>
-                            setEventForm({
-                              ...eventForm,
-                              location: e.target.value,
-                            })
-                          }
-                          placeholder={tc("eventLocationLabel")}
-                          className="w-full rounded-2xl border border-[#342a1a] bg-black/60 p-4 text-[#efe2c5] outline-none placeholder:text-[#796c56]"
-                        />
-                        <input
-                          value={eventForm.max_participants}
-                          onChange={(e) =>
-                            setEventForm({
-                              ...eventForm,
-                              max_participants: e.target.value,
-                            })
-                          }
-                          type="number"
-                          placeholder={tc("eventMaxParticipantsLabel")}
-                          className="w-full rounded-2xl border border-[#342a1a] bg-black/60 p-4 text-[#efe2c5] outline-none placeholder:text-[#796c56]"
-                        />
-                        <input
-                          value={eventForm.short_description}
-                          onChange={(e) =>
-                            setEventForm({
-                              ...eventForm,
-                              short_description: e.target.value,
-                            })
-                          }
-                          placeholder={tc("eventShortDescriptionLabel")}
-                          className="lg:col-span-2 w-full rounded-2xl border border-[#342a1a] bg-black/60 p-4 text-[#efe2c5] outline-none placeholder:text-[#796c56]"
-                        />
-                        <textarea
-                          value={eventForm.long_description}
-                          onChange={(e) =>
-                            setEventForm({
-                              ...eventForm,
-                              long_description: e.target.value,
-                            })
-                          }
-                          placeholder={tc("eventLongDescriptionLabel")}
-                          className="lg:col-span-2 w-full rounded-2xl border border-[#342a1a] bg-black/60 p-4 text-[#efe2c5] outline-none placeholder:text-[#796c56]"
-                        />
+                        <input value={eventForm.title} onChange={(e) => setEventForm({ ...eventForm, title: e.target.value })} placeholder={tc("eventTitleLabel")} className="w-full rounded-2xl border border-[#342a1a] bg-black/60 p-4 text-[#efe2c5] outline-none placeholder:text-[#796c56]" />
+                        <input value={eventForm.event_date} onChange={(e) => setEventForm({ ...eventForm, event_date: e.target.value })} type="date" className="w-full rounded-2xl border border-[#342a1a] bg-black/60 p-4 text-[#efe2c5] outline-none" />
+                        <input value={eventForm.location} onChange={(e) => setEventForm({ ...eventForm, location: e.target.value })} placeholder={tc("eventLocationLabel")} className="w-full rounded-2xl border border-[#342a1a] bg-black/60 p-4 text-[#efe2c5] outline-none placeholder:text-[#796c56]" />
+                        <input value={eventForm.max_participants} onChange={(e) => setEventForm({ ...eventForm, max_participants: e.target.value })} type="number" placeholder={tc("eventMaxParticipantsLabel")} className="w-full rounded-2xl border border-[#342a1a] bg-black/60 p-4 text-[#efe2c5] outline-none placeholder:text-[#796c56]" />
+                        <input value={eventForm.short_description} onChange={(e) => setEventForm({ ...eventForm, short_description: e.target.value })} placeholder={tc("eventShortDescriptionLabel")} className="w-full rounded-2xl border border-[#342a1a] bg-black/60 p-4 text-[#efe2c5] outline-none placeholder:text-[#796c56] lg:col-span-2" />
+                        <textarea value={eventForm.long_description} onChange={(e) => setEventForm({ ...eventForm, long_description: e.target.value })} placeholder={tc("eventLongDescriptionLabel")} className="w-full rounded-2xl border border-[#342a1a] bg-black/60 p-4 text-[#efe2c5] outline-none placeholder:text-[#796c56] lg:col-span-2" />
 
-                        <div className="lg:col-span-2 rounded-2xl border border-[#342a1a] bg-black/60 p-4">
-                          <label className="mb-3 flex items-center gap-2 text-sm text-[#efe2c5]">
-                            <ImageIcon className="h-4 w-4 text-[#b6924f]" />
-                            {tc("eventImageLabel")}
-                          </label>
-                          <input
-                            type="file"
-                            accept="image/*"
-                            onChange={(e) =>
-                              setEventImageFile(e.target.files?.[0] || null)
-                            }
-                            className="w-full text-[#efe2c5] outline-none"
-                          />
+                        <div className="rounded-2xl border border-[#342a1a] bg-black/60 p-4 lg:col-span-2">
+                          <label className="mb-3 flex items-center gap-2 text-sm text-[#efe2c5]"><ImageIcon className="h-4 w-4 text-[#b6924f]" />{tc("eventImageLabel")}</label>
+                          <input type="file" accept="image/*" onChange={(e) => setEventImageFile(e.target.files?.[0] || null)} className="w-full text-[#efe2c5] outline-none" />
                         </div>
 
-                        <div className="lg:col-span-2 rounded-2xl border border-[#342a1a] bg-black/60 p-4">
-                          <label className="mb-3 flex items-center gap-2 text-sm text-[#efe2c5]">
-                            <Paperclip className="h-4 w-4 text-[#b6924f]" />
-                            {tc("eventAttachmentLabel")}
-                          </label>
-                          <input
-                            type="file"
-                            onChange={(e) =>
-                              setEventAttachmentFile(
-                                e.target.files?.[0] || null
-                              )
-                            }
-                            className="w-full text-[#efe2c5] outline-none"
-                          />
+                        <div className="rounded-2xl border border-[#342a1a] bg-black/60 p-4 lg:col-span-2">
+                          <label className="mb-3 flex items-center gap-2 text-sm text-[#efe2c5]"><Paperclip className="h-4 w-4 text-[#b6924f]" />{tc("eventAttachmentLabel")}</label>
+                          <input type="file" onChange={(e) => setEventAttachmentFile(e.target.files?.[0] || null)} className="w-full text-[#efe2c5] outline-none" />
                         </div>
                       </div>
 
                       <div className="mt-6 flex flex-wrap gap-4">
-                        <button
-                          onClick={handleCreateEvent}
-                          disabled={eventSaving}
-                          className="inline-flex items-center gap-2 rounded-full bg-[#b6924f] px-5 py-3 text-sm uppercase tracking-[0.22em] text-black transition hover:bg-[#c6a45d] disabled:cursor-not-allowed disabled:opacity-70"
-                        >
-                          {eventSaving && (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          )}
-                          {editingEventId
-                            ? tc("eventSaveChanges")
-                            : tc("eventCreate")}
+                        <button onClick={handleCreateEvent} disabled={eventSaving} className="inline-flex items-center gap-2 rounded-full bg-[#b6924f] px-5 py-3 text-sm uppercase tracking-[0.22em] text-black transition hover:bg-[#c6a45d] disabled:cursor-not-allowed disabled:opacity-70">
+                          {eventSaving && <Loader2 className="h-4 w-4 animate-spin" />}
+                          {editingEventId ? tc("eventSaveChanges") : tc("eventCreate")}
                         </button>
 
                         {editingEventId && (
-                          <button
-                            onClick={resetEventEditor}
-                            className="rounded-full border border-[#b6924f] px-5 py-3 text-sm uppercase tracking-[0.22em] text-[#f2e6cf] transition hover:bg-[#b6924f] hover:text-black"
-                          >
-                            {tc("eventCancelEdit")}
-                          </button>
+                          <button onClick={resetEventEditor} className="rounded-full border border-[#b6924f] px-5 py-3 text-sm uppercase tracking-[0.22em] text-[#f2e6cf] transition hover:bg-[#b6924f] hover:text-black">{tc("eventCancelEdit")}</button>
                         )}
                       </div>
                     </div>
@@ -2338,31 +1803,15 @@ export default function TheHeritageDriversLandingPage() {
                   {participantsView && (
                     <div className="mt-8 rounded-[1.5rem] border border-[#2d2416] bg-[#0f0f0f] p-6">
                       <div className="flex items-center justify-between gap-4">
-                        <p className="text-xs uppercase tracking-[0.3em] text-[#b6924f]">
-                          {tc("eventParticipants")}
-                        </p>
-                        <button
-                          onClick={() => setParticipantsView(null)}
-                          className="rounded-full border border-[#3b311d] px-4 py-2 text-xs uppercase tracking-[0.18em] text-[#f2e6cf] transition hover:border-[#b6924f]"
-                        >
-                          {tc("eventClose")}
-                        </button>
+                        <p className="text-xs uppercase tracking-[0.3em] text-[#b6924f]">{tc("eventParticipants")}</p>
+                        <button onClick={() => setParticipantsView(null)} className="rounded-full border border-[#3b311d] px-4 py-2 text-xs uppercase tracking-[0.18em] text-[#f2e6cf] transition hover:border-[#b6924f]">{tc("eventClose")}</button>
                       </div>
 
                       <div className="mt-6 space-y-3">
                         {participantsView.rows.length === 0 ? (
-                          <p className="text-sm text-[#b8ad96]">
-                            {tc("eventNoParticipants")}
-                          </p>
+                          <p className="text-sm text-[#b8ad96]">{tc("eventNoParticipants")}</p>
                         ) : (
-                          participantsView.rows.map((row) => (
-                            <div
-                              key={row.id}
-                              className="rounded-xl border border-[#2d2416] bg-[#131313] p-4 text-sm text-[#e8dcc0]"
-                            >
-                              {row.full_name}
-                            </div>
-                          ))
+                          participantsView.rows.map((row) => <div key={row.id} className="rounded-xl border border-[#2d2416] bg-[#131313] p-4 text-sm text-[#e8dcc0]">{row.full_name}</div>)
                         )}
                       </div>
                     </div>
@@ -2370,35 +1819,17 @@ export default function TheHeritageDriversLandingPage() {
 
                   {isAdmin && (
                     <div className="mt-10 rounded-[1.5rem] border border-[#2d2416] bg-[#0f0f0f] p-6">
-                      <div className="flex items-center gap-3">
-                        <Archive className="h-5 w-5 text-[#b6924f]" />
-                        <h3 className="text-xl text-[#f2e6cf]">
-                          {tc("archivedEventsTitle")}
-                        </h3>
-                      </div>
+                      <div className="flex items-center gap-3"><Archive className="h-5 w-5 text-[#b6924f]" /><h3 className="text-xl text-[#f2e6cf]">{tc("archivedEventsTitle")}</h3></div>
 
                       {archivedEvents.length === 0 ? (
-                        <p className="mt-4 text-sm text-[#b8ad96]">
-                          {tc("archivedEventsEmpty")}
-                        </p>
+                        <p className="mt-4 text-sm text-[#b8ad96]">{tc("archivedEventsEmpty")}</p>
                       ) : (
                         <div className="mt-6 grid gap-4 lg:grid-cols-2">
                           {archivedEvents.map((event) => (
-                            <div
-                              key={`archived-${event.id}`}
-                              className="rounded-xl border border-[#2d2416] bg-[#131313] p-4"
-                            >
+                            <div key={`archived-${event.id}`} className="rounded-xl border border-[#2d2416] bg-[#131313] p-4">
                               <p className="text-lg text-[#f2e6cf]">{event.title}</p>
-                              <p className="mt-2 text-sm text-[#a99c83]">
-                                {formatDateSafe(event.event_date, lang)}
-                                {event.location ? ` · ${event.location}` : ""}
-                              </p>
-                              {event.archived_at && (
-                                <p className="mt-2 text-xs uppercase tracking-[0.2em] text-[#8f836d]">
-                                  {tc("archivedAt")}:{" "}
-                                  {formatDateSafe(event.archived_at, lang)}
-                                </p>
-                              )}
+                              <p className="mt-2 text-sm text-[#a99c83]">{formatDateSafe(event.event_date, lang)}{event.location ? ` · ${event.location}` : ""}</p>
+                              {event.archived_at && <p className="mt-2 text-xs uppercase tracking-[0.2em] text-[#8f836d]">{tc("archivedAt")}: {formatDateSafe(event.archived_at, lang)}</p>}
                             </div>
                           ))}
                         </div>
@@ -2408,89 +1839,29 @@ export default function TheHeritageDriversLandingPage() {
                 </div>
 
                 <div className="rounded-[1.75rem] border border-[#2d2416] bg-[#131313] p-8">
-                  <div className="flex items-center gap-3">
-                    <Save className="h-5 w-5 text-[#b6924f]" />
-                    <h3 className="text-xl text-[#f2e6cf]">{tc("accountTitle")}</h3>
-                  </div>
-
-                  <p className="mt-3 text-sm leading-6 text-[#a99c83]">
-                    {tc("accountSubtitle")}
-                  </p>
+                  <div className="flex items-center gap-3"><Save className="h-5 w-5 text-[#b6924f]" /><h3 className="text-xl text-[#f2e6cf]">{tc("accountTitle")}</h3></div>
+                  <p className="mt-3 text-sm leading-6 text-[#a99c83]">{tc("accountSubtitle")}</p>
 
                   <div className="mt-6 grid gap-4 lg:grid-cols-2">
                     <div className="rounded-[1.25rem] border border-[#2d2416] bg-[#0f0f0f] p-5">
-                      <label className="mb-2 block text-sm text-[#d9ccb1]">
-                        {tc("accountDisplayName")}
-                      </label>
-                      <input
-                        value={accountName}
-                        onChange={(e) => setAccountName(e.target.value)}
-                        className="w-full rounded-2xl border border-[#342a1a] bg-black/60 p-4 text-[#efe2c5] outline-none"
-                      />
-                      <button
-                        onClick={handleUpdateProfileName}
-                        disabled={accountLoading}
-                        className="mt-4 rounded-full border border-[#b6924f] px-4 py-2 text-xs uppercase tracking-[0.18em] text-[#f2e6cf] transition hover:bg-[#b6924f] hover:text-black disabled:cursor-not-allowed disabled:opacity-70"
-                      >
-                        {tc("accountSaveName")}
-                      </button>
+                      <label className="mb-2 block text-sm text-[#d9ccb1]">{tc("accountDisplayName")}</label>
+                      <input value={accountName} onChange={(e) => setAccountName(e.target.value)} className="w-full rounded-2xl border border-[#342a1a] bg-black/60 p-4 text-[#efe2c5] outline-none" />
+                      <button onClick={handleUpdateProfileName} disabled={accountLoading} className="mt-4 rounded-full border border-[#b6924f] px-4 py-2 text-xs uppercase tracking-[0.18em] text-[#f2e6cf] transition hover:bg-[#b6924f] hover:text-black disabled:cursor-not-allowed disabled:opacity-70">{tc("accountSaveName")}</button>
                     </div>
 
                     <div className="rounded-[1.25rem] border border-[#2d2416] bg-[#0f0f0f] p-5">
-                      <label className="mb-2 block text-sm text-[#d9ccb1]">
-                        {tc("accountEmail")}
-                      </label>
-                      <input
-                        type="email"
-                        value={accountEmail}
-                        onChange={(e) => setAccountEmail(e.target.value)}
-                        className="w-full rounded-2xl border border-[#342a1a] bg-black/60 p-4 text-[#efe2c5] outline-none"
-                      />
-                      <button
-                        onClick={handleUpdateEmail}
-                        disabled={accountLoading}
-                        className="mt-4 rounded-full border border-[#b6924f] px-4 py-2 text-xs uppercase tracking-[0.18em] text-[#f2e6cf] transition hover:bg-[#b6924f] hover:text-black disabled:cursor-not-allowed disabled:opacity-70"
-                      >
-                        {tc("accountSaveEmail")}
-                      </button>
+                      <label className="mb-2 block text-sm text-[#d9ccb1]">{tc("accountEmail")}</label>
+                      <input type="email" value={accountEmail} onChange={(e) => setAccountEmail(e.target.value)} className="w-full rounded-2xl border border-[#342a1a] bg-black/60 p-4 text-[#efe2c5] outline-none" />
+                      <button onClick={handleUpdateEmail} disabled={accountLoading} className="mt-4 rounded-full border border-[#b6924f] px-4 py-2 text-xs uppercase tracking-[0.18em] text-[#f2e6cf] transition hover:bg-[#b6924f] hover:text-black disabled:cursor-not-allowed disabled:opacity-70">{tc("accountSaveEmail")}</button>
                     </div>
 
                     <div className="rounded-[1.25rem] border border-[#2d2416] bg-[#0f0f0f] p-5 lg:col-span-2">
                       <div className="grid gap-4 lg:grid-cols-2">
-                        <div>
-                          <label className="mb-2 block text-sm text-[#d9ccb1]">
-                            {tc("accountNewPassword")}
-                          </label>
-                          <input
-                            type="password"
-                            value={accountPassword}
-                            onChange={(e) => setAccountPassword(e.target.value)}
-                            className="w-full rounded-2xl border border-[#342a1a] bg-black/60 p-4 text-[#efe2c5] outline-none"
-                          />
-                        </div>
-
-                        <div>
-                          <label className="mb-2 block text-sm text-[#d9ccb1]">
-                            {tc("accountConfirmPassword")}
-                          </label>
-                          <input
-                            type="password"
-                            value={accountPasswordConfirm}
-                            onChange={(e) =>
-                              setAccountPasswordConfirm(e.target.value)
-                            }
-                            className="w-full rounded-2xl border border-[#342a1a] bg-black/60 p-4 text-[#efe2c5] outline-none"
-                          />
-                        </div>
+                        <div><label className="mb-2 block text-sm text-[#d9ccb1]">{tc("accountNewPassword")}</label><input type="password" value={accountPassword} onChange={(e) => setAccountPassword(e.target.value)} className="w-full rounded-2xl border border-[#342a1a] bg-black/60 p-4 text-[#efe2c5] outline-none" /></div>
+                        <div><label className="mb-2 block text-sm text-[#d9ccb1]">{tc("accountConfirmPassword")}</label><input type="password" value={accountPasswordConfirm} onChange={(e) => setAccountPasswordConfirm(e.target.value)} className="w-full rounded-2xl border border-[#342a1a] bg-black/60 p-4 text-[#efe2c5] outline-none" /></div>
                       </div>
 
-                      <button
-                        onClick={handleUpdatePassword}
-                        disabled={accountLoading}
-                        className="mt-4 rounded-full border border-[#b6924f] px-4 py-2 text-xs uppercase tracking-[0.18em] text-[#f2e6cf] transition hover:bg-[#b6924f] hover:text-black disabled:cursor-not-allowed disabled:opacity-70"
-                      >
-                        {tc("accountSavePassword")}
-                      </button>
+                      <button onClick={handleUpdatePassword} disabled={accountLoading} className="mt-4 rounded-full border border-[#b6924f] px-4 py-2 text-xs uppercase tracking-[0.18em] text-[#f2e6cf] transition hover:bg-[#b6924f] hover:text-black disabled:cursor-not-allowed disabled:opacity-70">{tc("accountSavePassword")}</button>
                     </div>
                   </div>
                 </div>
@@ -2498,67 +1869,27 @@ export default function TheHeritageDriversLandingPage() {
                 {isAdmin && (
                   <div className="rounded-[1.75rem] border border-[#2d2416] bg-[#131313] p-8">
                     <div className="flex flex-wrap items-center justify-between gap-4">
-                      <div>
-                        <h3 className="text-xl text-[#f2e6cf]">{tc("adminTitle")}</h3>
-                        <p className="mt-3 text-sm leading-6 text-[#a99c83]">
-                          {tc("adminSubtitle")}
-                        </p>
-                      </div>
-
-                      <Link
-                        href="/admin/pages"
-                        className="inline-flex items-center gap-2 rounded-full border border-[#b6924f] px-4 py-2 text-xs uppercase tracking-[0.18em] text-[#f2e6cf] transition hover:bg-[#b6924f] hover:text-black"
-                      >
-                        <FileText className="h-3.5 w-3.5" />
-                        {tc("navAdminPages")}
-                      </Link>
+                      <div><h3 className="text-xl text-[#f2e6cf]">{tc("adminTitle")}</h3><p className="mt-3 text-sm leading-6 text-[#a99c83]">{tc("adminSubtitle")}</p></div>
+                      <Link href="/admin/pages" className="inline-flex items-center gap-2 rounded-full border border-[#b6924f] px-4 py-2 text-xs uppercase tracking-[0.18em] text-[#f2e6cf] transition hover:bg-[#b6924f] hover:text-black"><FileText className="h-3.5 w-3.5" />{tc("navAdminPages")}</Link>
                     </div>
 
                     <div className="mt-8 grid gap-6 lg:grid-cols-2">
                       <div className="rounded-[1.25rem] border border-[#2d2416] bg-[#0f0f0f] p-5">
-                        <h4 className="text-lg text-[#f2e6cf]">
-                          {tc("adminEnquiries")}
-                        </h4>
+                        <h4 className="text-lg text-[#f2e6cf]">{tc("adminEnquiries")}</h4>
 
                         {enquiriesLoading ? (
                           <p className="mt-4 text-sm text-[#b8ad96]">Loading...</p>
                         ) : enquiries.length === 0 ? (
-                          <p className="mt-4 text-sm text-[#b8ad96]">
-                            {tc("adminNoEnquiries")}
-                          </p>
+                          <p className="mt-4 text-sm text-[#b8ad96]">{tc("adminNoEnquiries")}</p>
                         ) : (
                           <div className="mt-4 space-y-4">
                             {enquiries.map((enquiry) => (
-                              <div
-                                key={enquiry.id}
-                                className="rounded-xl border border-[#2d2416] bg-[#131313] p-4"
-                              >
-                                <p className="text-sm text-[#f2e6cf]">
-                                  {enquiry.full_name}
-                                </p>
-                                <p className="mt-1 text-sm text-[#b8ad96]">
-                                  {enquiry.email}
-                                </p>
-                                {enquiry.interest_note && (
-                                  <p className="mt-3 text-sm leading-6 text-[#a99c83]">
-                                    {enquiry.interest_note}
-                                  </p>
-                                )}
-                                <p className="mt-3 text-xs uppercase tracking-[0.2em] text-[#8f836d]">
-                                  {enquiry.status === "reviewed"
-                                    ? tc("adminReviewed")
-                                    : tc("adminNew")}
-                                </p>
-                                {enquiry.status !== "reviewed" && (
-                                  <button
-                                    onClick={() =>
-                                      handleMarkEnquiryReviewed(enquiry.id)
-                                    }
-                                    className="mt-4 rounded-full border border-[#b6924f] px-4 py-2 text-xs uppercase tracking-[0.18em] text-[#f2e6cf] transition hover:bg-[#b6924f] hover:text-black"
-                                  >
-                                    {tc("adminMarkReviewed")}
-                                  </button>
-                                )}
+                              <div key={enquiry.id} className="rounded-xl border border-[#2d2416] bg-[#131313] p-4">
+                                <p className="text-sm text-[#f2e6cf]">{enquiry.full_name}</p>
+                                <p className="mt-1 text-sm text-[#b8ad96]">{enquiry.email}</p>
+                                {enquiry.interest_note && <p className="mt-3 text-sm leading-6 text-[#a99c83]">{enquiry.interest_note}</p>}
+                                <p className="mt-3 text-xs uppercase tracking-[0.2em] text-[#8f836d]">{enquiry.status === "reviewed" ? tc("adminReviewed") : tc("adminNew")}</p>
+                                {enquiry.status !== "reviewed" && <button onClick={() => handleMarkEnquiryReviewed(enquiry.id)} className="mt-4 rounded-full border border-[#b6924f] px-4 py-2 text-xs uppercase tracking-[0.18em] text-[#f2e6cf] transition hover:bg-[#b6924f] hover:text-black">{tc("adminMarkReviewed")}</button>}
                               </div>
                             ))}
                           </div>
@@ -2566,50 +1897,23 @@ export default function TheHeritageDriversLandingPage() {
                       </div>
 
                       <div className="rounded-[1.25rem] border border-[#2d2416] bg-[#0f0f0f] p-5">
-                        <h4 className="text-lg text-[#f2e6cf]">
-                          {tc("adminMembers")}
-                        </h4>
+                        <h4 className="text-lg text-[#f2e6cf]">{tc("adminMembers")}</h4>
 
                         {missingProfileUsers.length > 0 && (
                           <div className="mt-4 space-y-4">
                             {missingProfileUsers.map((authUser) => (
-                              <div
-                                key={`missing-${authUser.id}`}
-                                className="rounded-xl border border-[#5a4120] bg-[#17120d] p-4"
-                              >
-                                <p className="text-sm text-[#f2e6cf]">
-                                  {authUser.email}
-                                </p>
-                                <p className="mt-2 text-xs uppercase tracking-[0.2em] text-[#b6924f]">
-                                  {tc("adminMissingProfile")}
-                                </p>
+                              <div key={`missing-${authUser.id}`} className="rounded-xl border border-[#5a4120] bg-[#17120d] p-4">
+                                <p className="text-sm text-[#f2e6cf]">{authUser.email}</p>
+                                <p className="mt-2 text-xs uppercase tracking-[0.2em] text-[#b6924f]">{tc("adminMissingProfile")}</p>
 
                                 <div className="mt-4 space-y-3">
-                                  <label className="block text-[11px] uppercase tracking-[0.18em] text-[#8f836d]">
-                                    {tc("adminRole")}
-                                  </label>
-                                  <select
-                                    value={memberRoleDrafts[authUser.id] || "member"}
-                                    onChange={(e) =>
-                                      setMemberRoleDrafts((prev) => ({
-                                        ...prev,
-                                        [authUser.id]: e.target.value,
-                                      }))
-                                    }
-                                    className="w-full rounded-2xl border border-[#342a1a] bg-black/60 p-3 text-[#efe2c5] outline-none"
-                                  >
+                                  <label className="block text-[11px] uppercase tracking-[0.18em] text-[#8f836d]">{tc("adminRole")}</label>
+                                  <select value={memberRoleDrafts[authUser.id] || "member"} onChange={(e) => setMemberRoleDrafts((prev) => ({ ...prev, [authUser.id]: e.target.value }))} className="w-full rounded-2xl border border-[#342a1a] bg-black/60 p-3 text-[#efe2c5] outline-none">
                                     <option value="member">member</option>
                                     <option value="admin">admin</option>
                                   </select>
 
-                                  <button
-                                    onClick={() =>
-                                      handleCreateProfile(authUser.id, authUser.email)
-                                    }
-                                    className="rounded-full bg-[#b6924f] px-4 py-2 text-xs uppercase tracking-[0.18em] text-black transition hover:bg-[#c6a45d]"
-                                  >
-                                    {tc("adminCreateProfile")}
-                                  </button>
+                                  <button onClick={() => handleCreateProfile(authUser.id, authUser.email)} className="rounded-full bg-[#b6924f] px-4 py-2 text-xs uppercase tracking-[0.18em] text-black transition hover:bg-[#c6a45d]">{tc("adminCreateProfile")}</button>
                                 </div>
                               </div>
                             ))}
@@ -2617,67 +1921,25 @@ export default function TheHeritageDriversLandingPage() {
                         )}
 
                         {memberProfilesAdmin.length === 0 ? (
-                          <p className="mt-4 text-sm text-[#b8ad96]">
-                            {tc("adminNoMembers")}
-                          </p>
+                          <p className="mt-4 text-sm text-[#b8ad96]">{tc("adminNoMembers")}</p>
                         ) : (
                           <div className="mt-4 space-y-4">
                             {memberProfilesAdmin.map((member) => (
-                              <div
-                                key={member.id}
-                                className="rounded-xl border border-[#2d2416] bg-[#131313] p-4"
-                              >
-                                <p className="text-sm text-[#f2e6cf]">
-                                  {member.full_name || member.id}
-                                </p>
-                                <p className="mt-2 text-xs uppercase tracking-[0.2em] text-[#8f836d]">
-                                  {member.approved
-                                    ? tc("adminApproved")
-                                    : tc("adminPending")}
-                                </p>
+                              <div key={member.id} className="rounded-xl border border-[#2d2416] bg-[#131313] p-4">
+                                <p className="text-sm text-[#f2e6cf]">{member.full_name || member.id}</p>
+                                <p className="mt-2 text-xs uppercase tracking-[0.2em] text-[#8f836d]">{member.approved ? tc("adminApproved") : tc("adminPending")}</p>
 
                                 <div className="mt-4 space-y-3">
-                                  <label className="block text-[11px] uppercase tracking-[0.18em] text-[#8f836d]">
-                                    {tc("adminRole")}
-                                  </label>
-                                  <select
-                                    value={
-                                      memberRoleDrafts[member.id] ||
-                                      member.role ||
-                                      "member"
-                                    }
-                                    onChange={(e) =>
-                                      setMemberRoleDrafts((prev) => ({
-                                        ...prev,
-                                        [member.id]: e.target.value,
-                                      }))
-                                    }
-                                    className="w-full rounded-2xl border border-[#342a1a] bg-black/60 p-3 text-[#efe2c5] outline-none"
-                                  >
+                                  <label className="block text-[11px] uppercase tracking-[0.18em] text-[#8f836d]">{tc("adminRole")}</label>
+                                  <select value={memberRoleDrafts[member.id] || member.role || "member"} onChange={(e) => setMemberRoleDrafts((prev) => ({ ...prev, [member.id]: e.target.value }))} className="w-full rounded-2xl border border-[#342a1a] bg-black/60 p-3 text-[#efe2c5] outline-none">
                                     <option value="member">member</option>
                                     <option value="admin">admin</option>
                                   </select>
 
-                                  <button
-                                    onClick={() =>
-                                      handleUpdateMemberRole(member.id)
-                                    }
-                                    className="rounded-full border border-[#b6924f] px-4 py-2 text-xs uppercase tracking-[0.18em] text-[#f2e6cf] transition hover:bg-[#b6924f] hover:text-black"
-                                  >
-                                    {tc("adminSaveRole")}
-                                  </button>
+                                  <button onClick={() => handleUpdateMemberRole(member.id)} className="rounded-full border border-[#b6924f] px-4 py-2 text-xs uppercase tracking-[0.18em] text-[#f2e6cf] transition hover:bg-[#b6924f] hover:text-black">{tc("adminSaveRole")}</button>
                                 </div>
 
-                                {!member.approved && (
-                                  <button
-                                    onClick={() =>
-                                      handleApproveMember(member.id)
-                                    }
-                                    className="mt-4 rounded-full bg-[#b6924f] px-4 py-2 text-xs uppercase tracking-[0.18em] text-black transition hover:bg-[#c6a45d]"
-                                  >
-                                    {tc("adminApprove")}
-                                  </button>
-                                )}
+                                {!member.approved && <button onClick={() => handleApproveMember(member.id)} className="mt-4 rounded-full bg-[#b6924f] px-4 py-2 text-xs uppercase tracking-[0.18em] text-black transition hover:bg-[#c6a45d]">{tc("adminApprove")}</button>}
                               </div>
                             ))}
                           </div>
@@ -2696,87 +1958,43 @@ export default function TheHeritageDriversLandingPage() {
             <div className="w-full max-w-md rounded-[2rem] border border-[#3a2f1b] bg-[#0d0d0d] p-8 shadow-2xl shadow-black/40">
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <p className="text-xs uppercase tracking-[0.35em] text-[#b6924f]">
-                    The Heritage Drivers
-                  </p>
-                  <h3 className="mt-3 text-2xl text-[#f0e3c6]">
-                    {tc("loginTitle")}
-                  </h3>
-                  <p className="mt-3 text-sm leading-6 text-[#ad9f86]">
-                    {tc("loginSubtitle")}
-                  </p>
+                  <p className="text-xs uppercase tracking-[0.35em] text-[#b6924f]">The Heritage Drivers</p>
+                  <h3 className="mt-3 text-2xl text-[#f0e3c6]">{tc("loginTitle")}</h3>
+                  <p className="mt-3 text-sm leading-6 text-[#ad9f86]">{tc("loginSubtitle")}</p>
                 </div>
 
-                <button
-                  onClick={() => setShowLogin(false)}
-                  className="rounded-full border border-[#332818] px-3 py-1 text-xs uppercase tracking-[0.2em] text-[#b7aa90] hover:border-[#b6924f] hover:text-white"
-                >
-                  {tc("loginClose")}
-                </button>
+                <button onClick={() => setShowLogin(false)} className="rounded-full border border-[#332818] px-3 py-1 text-xs uppercase tracking-[0.2em] text-[#b7aa90] hover:border-[#b6924f] hover:text-white">{tc("loginClose")}</button>
               </div>
 
               <div className="mt-8 space-y-4">
                 {authMode === "signup" && (
                   <div className="relative">
                     <User className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8c7e65]" />
-                    <input
-                      value={fullName}
-                      onChange={(e) => setFullName(e.target.value)}
-                      placeholder={tc("loginFullName")}
-                      className="w-full rounded-2xl border border-[#342a1a] bg-black/60 py-4 pl-11 pr-4 text-[#efe2c5] outline-none placeholder:text-[#796c56] focus:border-[#b6924f]"
-                    />
+                    <input value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder={tc("loginFullName")} className="w-full rounded-2xl border border-[#342a1a] bg-black/60 py-4 pl-11 pr-4 text-[#efe2c5] outline-none placeholder:text-[#796c56] focus:border-[#b6924f]" />
                   </div>
                 )}
 
                 <div className="relative">
                   <Mail className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8c7e65]" />
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder={tc("loginEmail")}
-                    className="w-full rounded-2xl border border-[#342a1a] bg-black/60 py-4 pl-11 pr-4 text-[#efe2c5] outline-none placeholder:text-[#796c56] focus:border-[#b6924f]"
-                  />
+                  <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder={tc("loginEmail")} className="w-full rounded-2xl border border-[#342a1a] bg-black/60 py-4 pl-11 pr-4 text-[#efe2c5] outline-none placeholder:text-[#796c56] focus:border-[#b6924f]" />
                 </div>
 
                 <div className="relative">
                   <Lock className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8c7e65]" />
-                  <input
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder={tc("loginPassword")}
-                    className="w-full rounded-2xl border border-[#342a1a] bg-black/60 py-4 pl-11 pr-4 text-[#efe2c5] outline-none placeholder:text-[#796c56] focus:border-[#b6924f]"
-                  />
+                  <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder={tc("loginPassword")} className="w-full rounded-2xl border border-[#342a1a] bg-black/60 py-4 pl-11 pr-4 text-[#efe2c5] outline-none placeholder:text-[#796c56] focus:border-[#b6924f]" />
                 </div>
 
-                <button
-                  onClick={authMode === "login" ? handleLogin : handleSignup}
-                  disabled={loading}
-                  className="flex w-full items-center justify-center gap-2 rounded-full bg-[#b6924f] px-6 py-4 text-sm uppercase tracking-[0.28em] text-black transition hover:bg-[#c6a45d] disabled:cursor-not-allowed disabled:opacity-70"
-                >
+                <button onClick={authMode === "login" ? handleLogin : handleSignup} disabled={loading} className="flex w-full items-center justify-center gap-2 rounded-full bg-[#b6924f] px-6 py-4 text-sm uppercase tracking-[0.28em] text-black transition hover:bg-[#c6a45d] disabled:cursor-not-allowed disabled:opacity-70">
                   {loading && <Loader2 className="h-4 w-4 animate-spin" />}
                   {authMode === "login" ? tc("loginSubmit") : tc("signupSubmit")}
                 </button>
 
-                <button
-                  onClick={() => {
-                    resetStatus();
-                    setAuthMode(authMode === "login" ? "signup" : "login");
-                  }}
-                  className="w-full text-sm text-[#cdbd9f] underline underline-offset-4 hover:text-white"
-                >
-                  {authMode === "login"
-                    ? tc("switchToSignup")
-                    : tc("switchToLogin")}
+                <button onClick={() => { resetStatus(); setAuthMode(authMode === "login" ? "signup" : "login"); }} className="w-full text-sm text-[#cdbd9f] underline underline-offset-4 hover:text-white">
+                  {authMode === "login" ? tc("switchToSignup") : tc("switchToLogin")}
                 </button>
 
-                <p className="text-center text-xs text-[#7f735c]">
-                  {tc("loginForgot")}
-                </p>
-                <p className="text-center text-xs uppercase tracking-[0.25em] text-[#7f735c]">
-                  {tc("loginNote")}
-                </p>
+                <p className="text-center text-xs text-[#7f735c]">{tc("loginForgot")}</p>
+                <p className="text-center text-xs uppercase tracking-[0.25em] text-[#7f735c]">{tc("loginNote")}</p>
               </div>
             </div>
           </div>
@@ -2786,81 +2004,19 @@ export default function TheHeritageDriversLandingPage() {
       <footer className="border-t border-[#2a2213] bg-[#0b0b0b]">
         <div className="mx-auto grid max-w-7xl gap-8 px-6 py-12 lg:grid-cols-3">
           <div>
-            <EditableText
-              isAdmin={isAdmin}
-              value={tc("footerImprintTitle")}
-              onSave={(v) => saveContentField("footerImprintTitle", v)}
-              className="text-sm uppercase tracking-[0.3em] text-[#b6924f]"
-              as="h4"
-              modifyLabel={tc("modify")}
-              saveLabel={tc("save")}
-              cancelLabel={tc("cancel")}
-            />
-            <EditableText
-              isAdmin={isAdmin}
-              value={tc("footerImprintText")}
-              onSave={(v) => saveContentField("footerImprintText", v)}
-              className="mt-4 text-sm leading-6 text-[#a99c83]"
-              as="p"
-              multiline
-              modifyLabel={tc("modify")}
-              saveLabel={tc("save")}
-              cancelLabel={tc("cancel")}
-            />
-            <Link
-              href="/impressum"
-              className="mt-4 inline-block text-sm text-[#d7bf8a] underline underline-offset-4"
-            >
-              {tc("footerImprintLink")}
-            </Link>
+            <EditableText isAdmin={isAdmin} value={tc("footerImprintTitle")} onSave={(v) => saveContentField("footerImprintTitle", v)} className="text-sm uppercase tracking-[0.3em] text-[#b6924f]" as="h4" modifyLabel={tc("modify")} saveLabel={tc("save")} cancelLabel={tc("cancel")} />
+            <EditableText isAdmin={isAdmin} value={tc("footerImprintText")} onSave={(v) => saveContentField("footerImprintText", v)} className="mt-4 text-sm leading-6 text-[#a99c83]" as="p" multiline modifyLabel={tc("modify")} saveLabel={tc("save")} cancelLabel={tc("cancel")} />
+            <Link href="/impressum" className="mt-4 inline-block text-sm text-[#d7bf8a] underline underline-offset-4">{tc("footerImprintLink")}</Link>
           </div>
 
           <div>
-            <EditableText
-              isAdmin={isAdmin}
-              value={tc("footerAffiliationTitle")}
-              onSave={(v) => saveContentField("footerAffiliationTitle", v)}
-              className="text-sm uppercase tracking-[0.3em] text-[#b6924f]"
-              as="h4"
-              modifyLabel={tc("modify")}
-              saveLabel={tc("save")}
-              cancelLabel={tc("cancel")}
-            />
-            <EditableText
-              isAdmin={isAdmin}
-              value={tc("footerAffiliationText")}
-              onSave={(v) => saveContentField("footerAffiliationText", v)}
-              className="mt-4 text-sm leading-6 text-[#a99c83]"
-              as="p"
-              multiline
-              modifyLabel={tc("modify")}
-              saveLabel={tc("save")}
-              cancelLabel={tc("cancel")}
-            />
+            <EditableText isAdmin={isAdmin} value={tc("footerAffiliationTitle")} onSave={(v) => saveContentField("footerAffiliationTitle", v)} className="text-sm uppercase tracking-[0.3em] text-[#b6924f]" as="h4" modifyLabel={tc("modify")} saveLabel={tc("save")} cancelLabel={tc("cancel")} />
+            <EditableText isAdmin={isAdmin} value={tc("footerAffiliationText")} onSave={(v) => saveContentField("footerAffiliationText", v)} className="mt-4 text-sm leading-6 text-[#a99c83]" as="p" multiline modifyLabel={tc("modify")} saveLabel={tc("save")} cancelLabel={tc("cancel")} />
           </div>
 
           <div>
-            <EditableText
-              isAdmin={isAdmin}
-              value={tc("footerSponsorsTitle")}
-              onSave={(v) => saveContentField("footerSponsorsTitle", v)}
-              className="text-sm uppercase tracking-[0.3em] text-[#b6924f]"
-              as="h4"
-              modifyLabel={tc("modify")}
-              saveLabel={tc("save")}
-              cancelLabel={tc("cancel")}
-            />
-            <EditableText
-              isAdmin={isAdmin}
-              value={tc("footerSponsorsText")}
-              onSave={(v) => saveContentField("footerSponsorsText", v)}
-              className="mt-4 text-sm leading-6 text-[#a99c83]"
-              as="p"
-              multiline
-              modifyLabel={tc("modify")}
-              saveLabel={tc("save")}
-              cancelLabel={tc("cancel")}
-            />
+            <EditableText isAdmin={isAdmin} value={tc("footerSponsorsTitle")} onSave={(v) => saveContentField("footerSponsorsTitle", v)} className="text-sm uppercase tracking-[0.3em] text-[#b6924f]" as="h4" modifyLabel={tc("modify")} saveLabel={tc("save")} cancelLabel={tc("cancel")} />
+            <EditableText isAdmin={isAdmin} value={tc("footerSponsorsText")} onSave={(v) => saveContentField("footerSponsorsText", v)} className="mt-4 text-sm leading-6 text-[#a99c83]" as="p" multiline modifyLabel={tc("modify")} saveLabel={tc("save")} cancelLabel={tc("cancel")} />
           </div>
         </div>
 

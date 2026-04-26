@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { createClient } from "@supabase/supabase-js";
+import { supabase, supabaseConfigured } from "@/lib/supabaseClient";
 import {
   Loader2,
   AlertCircle,
@@ -15,19 +15,8 @@ import {
   Home,
   Users,
   Mail,
+  LogOut,
 } from "lucide-react";
-
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
-const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
-
-const supabaseConfigured =
-  SUPABASE_URL.startsWith("https://") &&
-  !SUPABASE_URL.includes("YOUR_PROJECT") &&
-  !SUPABASE_ANON_KEY.includes("YOUR_PUBLIC");
-
-const supabase = supabaseConfigured
-  ? createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
-  : null;
 
 const PAGE_OPTIONS = [
   {
@@ -73,83 +62,27 @@ export default function AdminPagesPage() {
     return pages.find((page) => page.slug === selectedSlug) || null;
   }, [pages, selectedSlug]);
 
-  const missingProfileUsers = authUsersAdmin.filter(
-    (authUser) => !memberProfilesAdmin.some((member) => member.id === authUser.id)
-  );
+  const missingProfileUsers = useMemo(() => {
+    return authUsersAdmin.filter(
+      (authUser) =>
+        !memberProfilesAdmin.some((member) => member.id === authUser.id)
+    );
+  }, [authUsersAdmin, memberProfilesAdmin]);
 
   const resetStatus = () => setStatus({ type: "", message: "" });
 
-  useEffect(() => {
-    const init = async () => {
-      if (!supabaseConfigured || !supabase) {
-        setStatus({
-          type: "error",
-          message:
-            "Supabase ist nicht korrekt konfiguriert. Bitte ENV-Variablen prüfen.",
-        });
-        setInitializing(false);
-        return;
-      }
-
-      try {
-        const {
-          data: { session },
-          error: sessionError,
-        } = await supabase.auth.getSession();
-
-        if (sessionError) throw sessionError;
-
-        if (!session?.user) {
-          router.replace("/");
-          return;
-        }
-
-        setSessionUser(session.user);
-
-        const { data: profileData, error: profileError } = await supabase
-          .from("member_profiles")
-          .select("id, full_name, role, approved")
-          .eq("id", session.user.id)
-          .maybeSingle();
-
-        if (profileError) throw profileError;
-
-        if (!profileData || profileData.role !== "admin") {
-          router.replace("/");
-          return;
-        }
-
-        setProfile(profileData);
-        setAuthorized(true);
-
-        await Promise.all([
-          loadPages(),
-          loadEnquiries(),
-          loadMemberProfilesAdmin(),
-          loadAuthUsersAdmin(),
-        ]);
-      } catch (error) {
-        setStatus({
-          type: "error",
-          message: error?.message || "Fehler bei der Initialisierung.",
-        });
-      } finally {
-        setInitializing(false);
-      }
-    };
-
-    init();
-  }, [router]);
-
-  useEffect(() => {
-    if (selectedPage) {
-      setTitle(selectedPage.title || "");
-      setContent(selectedPage.content || "");
-    } else {
-      setTitle("");
-      setContent("");
-    }
-  }, [selectedPage]);
+  const clearAdminState = () => {
+    setAuthorized(false);
+    setSessionUser(null);
+    setProfile(null);
+    setPages([]);
+    setTitle("");
+    setContent("");
+    setEnquiries([]);
+    setMemberProfilesAdmin([]);
+    setMemberRoleDrafts({});
+    setAuthUsersAdmin([]);
+  };
 
   async function loadPages() {
     if (!supabase) return;
@@ -190,7 +123,8 @@ export default function AdminPagesPage() {
     } catch (error) {
       setStatus({
         type: "error",
-        message: error?.message || "Mitgliedsanfragen konnten nicht geladen werden.",
+        message:
+          error?.message || "Mitgliedsanfragen konnten nicht geladen werden.",
       });
     } finally {
       setEnquiriesLoading(false);
@@ -243,6 +177,7 @@ export default function AdminPagesPage() {
       if (error) throw error;
       setAuthUsersAdmin(data || []);
     } catch (error) {
+      console.error("loadAuthUsersAdmin error:", error);
       setAuthUsersAdmin([]);
     }
   }
@@ -256,6 +191,108 @@ export default function AdminPagesPage() {
       loadAuthUsersAdmin(),
     ]);
   }
+
+  useEffect(() => {
+    let mounted = true;
+
+    const init = async () => {
+      if (!supabaseConfigured || !supabase) {
+        if (!mounted) return;
+        setStatus({
+          type: "error",
+          message:
+            "Supabase ist nicht korrekt konfiguriert. Bitte ENV-Variablen prüfen.",
+        });
+        setInitializing(false);
+        return;
+      }
+
+      try {
+        const {
+          data: { session },
+          error: sessionError,
+        } = await supabase.auth.getSession();
+
+        if (sessionError) throw sessionError;
+
+        if (!mounted) return;
+
+        if (!session?.user) {
+          clearAdminState();
+          setInitializing(false);
+          router.replace("/");
+          return;
+        }
+
+        setSessionUser(session.user);
+
+        const { data: profileData, error: profileError } = await supabase
+          .from("member_profiles")
+          .select("id, full_name, role, approved")
+          .eq("id", session.user.id)
+          .maybeSingle();
+
+        if (profileError) throw profileError;
+
+        if (!mounted) return;
+
+        if (!profileData || profileData.role !== "admin") {
+          clearAdminState();
+          setInitializing(false);
+          router.replace("/");
+          return;
+        }
+
+        setProfile(profileData);
+        setAuthorized(true);
+
+        await Promise.all([
+          loadPages(),
+          loadEnquiries(),
+          loadMemberProfilesAdmin(),
+          loadAuthUsersAdmin(),
+        ]);
+      } catch (error) {
+        console.error("Admin initialization error:", error);
+        if (!mounted) return;
+        clearAdminState();
+        setStatus({
+          type: "error",
+          message: error?.message || "Fehler bei der Initialisierung.",
+        });
+      } finally {
+        if (mounted) setInitializing(false);
+      }
+    };
+
+    init();
+
+    const {
+      data: { subscription },
+    } = supabase?.auth?.onAuthStateChange(async (_event, currentSession) => {
+      if (!mounted) return;
+
+      if (!currentSession?.user) {
+        clearAdminState();
+        router.replace("/");
+      }
+    }) || { data: { subscription: null } };
+
+    return () => {
+      mounted = false;
+      subscription?.unsubscribe?.();
+    };
+  }, [router]);
+
+  useEffect(() => {
+    if (selectedPage) {
+      setTitle(selectedPage.title || "");
+      setContent(selectedPage.content || "");
+    } else {
+      setTitle("");
+      setContent("");
+    }
+  }, [selectedPage]);
 
   async function handleSavePage() {
     resetStatus();
@@ -422,6 +459,19 @@ export default function AdminPagesPage() {
     }
   }
 
+  async function handleLogout() {
+    resetStatus();
+
+    if (supabase) {
+      await supabase.auth.signOut();
+    }
+
+    localStorage.removeItem("heritage-drivers-auth");
+    sessionStorage.clear();
+    clearAdminState();
+    window.location.href = "/";
+  }
+
   const StatusBanner = () =>
     status.message ? (
       <div
@@ -485,6 +535,14 @@ export default function AdminPagesPage() {
               <RefreshCw className="h-4 w-4" />
               Neu laden
             </button>
+
+            <button
+              onClick={handleLogout}
+              className="inline-flex items-center gap-2 rounded-full border border-[#3b311d] px-5 py-3 text-sm uppercase tracking-[0.2em] text-[#f2e6cf] transition hover:border-[#b6924f]"
+            >
+              <LogOut className="h-4 w-4" />
+              Abmelden
+            </button>
           </div>
         </div>
 
@@ -495,7 +553,7 @@ export default function AdminPagesPage() {
             <Shield className="h-5 w-5 text-[#b6924f]" />
             <div>
               <p className="text-sm text-[#f2e6cf]">
-                Angemeldet als {profile?.full_name || "Admin"}
+                Angemeldet als {profile?.full_name || sessionUser?.email || "Admin"}
               </p>
               <p className="text-xs uppercase tracking-[0.2em] text-[#8f836d]">
                 Rolle: {profile?.role || "unknown"}
@@ -543,8 +601,7 @@ export default function AdminPagesPage() {
             <section className="rounded-[1.75rem] border border-[#2d2416] bg-[#111111] p-6">
               {!selectedPage ? (
                 <div className="rounded-2xl border border-[#4b2a23] bg-[#1a1110] p-5 text-sm text-[#efc5bc]">
-                  Für diesen `slug` wurde noch kein Eintrag in `site_pages`
-                  gefunden.
+                  Für diesen slug wurde noch kein Eintrag in site_pages gefunden.
                 </div>
               ) : (
                 <>
