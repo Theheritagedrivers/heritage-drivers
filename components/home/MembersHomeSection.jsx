@@ -8,13 +8,7 @@ export default function MembersHomeSection({
 }) {
   return (
     <section>
-      <div className="mb-10 flex justify-center">
-        <img
-          src="/logo.png"
-          alt="The Heritage Drivers"
-          className="h-40 object-contain"
-        />
-      </div>
+     
 
       <p className="text-sm uppercase tracking-[0.4em] text-[#b6924f]">
         {tc("secureAccess")}
