@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { supabaseConfigured } from "@/lib/supabaseClient";
 
 import SiteHeader from "@/components/layout/SiteHeader";
@@ -13,7 +13,6 @@ import MembershipEnquirySection from "@/components/home/MembershipEnquirySection
 
 import EventSection from "@/components/events/EventSection";
 import AccountSection from "@/components/account/AccountSection";
-import AdminPanel from "@/components/admin/AdminPanel";
 import LoginModal from "@/components/auth/LoginModal";
 
 import { useHeritageAuth } from "@/hooks/useHeritageAuth";
@@ -69,6 +68,12 @@ export default function TheHeritageDriversLandingPage() {
     resetStatus,
   });
 
+  useEffect(() => {
+    if (session?.user) {
+      setShowLogin(false);
+    }
+  }, [session?.user?.id]);
+
   const { websiteContent, saveContentField } = useWebsiteContent({
     lang,
     session,
@@ -120,8 +125,8 @@ export default function TheHeritageDriversLandingPage() {
           className="absolute inset-0 h-full w-full object-cover"
         />
 
-       <div className="absolute inset-0 bg-black/35" />
-<div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-[#0a0a0a]" />
+        <div className="absolute inset-0 bg-black/45" />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-[#0a0a0a]" />
 
       
       </section>
